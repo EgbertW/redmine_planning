@@ -27,7 +27,7 @@ Redmine::Plugin.register :redmine_planning do
     author_url 'http://assistobot.com'
   end
 
-  # Maybe needed for move?
-  #permission :move_issue, :issue => :move
+  project_module :issue_tracking do
+    permission :reschedule_issues, :moves => [:index, :move]
+  end
 end
-
