@@ -1,19 +1,10 @@
 require 'redmine'
 
-# TODO: is this needed?
-#require 'redmine/i18n'  
-
-#Rails.configuration do
-    #require 'redmine_planning'
-require_dependency 'planning_issues_controller_patch'
-require 'planning_hooks'
-#end
+Rails.configuration.to_prepare do
+  require 'planning_hooks'
+end
 
 Redmine::Plugin.register :redmine_planning do
-  extend Redmine::I18n
-  File.join(Rails.root, 'vendor', 'plugins',
-                        'redmine_stealth', 'config', 'locales', '*.yml')
-
   name        'Redmine Planning plugin'
   author      'Egbert van der Wal'
   description 'Enables users to directly manipulate the Gantt chart by ' +

@@ -119,7 +119,7 @@ $(function () {
                         }
                         else
                         {
-                            alert('Saving issue failed!');      
+                            alert(response.error);
                         }
                     }, 
                     "json"
