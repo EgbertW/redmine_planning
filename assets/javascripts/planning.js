@@ -37,87 +37,99 @@ function updateDates(el, days)
 }
 
 $(function () {
-   if ($('.gantt_hdr').length == 0)
-       return;
+    if ($('.gantt_hdr').length == 0)
+        return;
 
-   // Get the first month header of the Gantt chart
-   var month = $('.gantt_hdr a').first().parent();
+    // Get the first month header of the Gantt chart
+    var month = $('.gantt_hdr a').first().parent();
 
-   // Get the text of the month: 2014-1 for example
-   var desc = month.children('a').text();
+    // Get the text of the month: 2014-1 for example
+    var desc = month.children('a').text();
 
-   // Split it into year-month
-   var parts = desc.match(/([0-9]{4})-([0-9]+)/);
+    // Split it into year-month
+    var parts = desc.match(/([0-9]{4})-([0-9]+)/);
 
-   // Unusable
-   if (!parts)
-       return;
+    // Unusable
+    if (!parts)
+        return;
 
-   // Extract the two parts
-   var nYear = parts[2];
-   var nMonth = parts[2];
+    // Extract the two parts
+    var nYear = parts[2];
+    var nMonth = parts[2];
 
-   // Get the number of days in that month/year
-   var nDays = new Date(nYear, nMonth, 0).getDate();
+    // Get the number of days in that month/year
+    var nDays = new Date(nYear, nMonth, 0).getDate();
 
-   // Calculate the width of each day
-   var day_width = month.width() / nDays;
+    // Calculate the width of each day
+    var day_width = month.width() / nDays;
 
-   $('div.tooltip').draggable({
-       axis: 'x',
-       grid: [day_width, 0],
-       start: function (event, ui)
-       {
-           var sp = $('#gantt_area').scrollLeft();
-           var task = $(this).prevUntil('.tooltip');
-           task.each(function () {
-               var $t = $(this);
-               $t.data('left', $t.position().left + sp);
-           });
+    $('div.tooltip').draggable({
+        axis: 'x',
+        grid: [day_width, 0],
+        start: function (event, ui)
+        {
+            var sp = $('#gantt_area').scrollLeft();
+            var task = $(this).prevUntil('.tooltip');
+            task.each(function () {
+                var $t = $(this);
+                $t.data('left', $t.position().left + sp);
+            });
 
-           $(this).data('start_pos', ui.position);
-       },
-       drag: function (event, ui)
-       {
-           var start_pos = $(this).data('start_pos');
-           var diff = ui.position.left - start_pos.left;
-           var task = $(this).prevUntil('.tooltip');
+            $(this).data('start_pos', ui.position);
+        },
+        drag: function (event, ui)
+        {
+            var start_pos = $(this).data('start_pos');
+            var diff = ui.position.left - start_pos.left;
+            var task = $(this).prevUntil('.tooltip');
 
-           var days = Math.round(diff / day_width);
-           updateDates($(this), days);
+            var days = Math.round(diff / day_width);
+            updateDates($(this), days);
 
-           task.each(function () {
-               var $t = $(this);
-               var l = $t.data('left') + diff;
-               $t.css('left', l + 'px');
+            task.each(function () {
+                var $t = $(this);
+                var l = $t.data('left') + diff;
+                $t.css('left', l + 'px');
 
-               if ($t.hasClass('task_todo'))
-                   return false;
-           });
-       },
-       stop: function (event, ui)
-       {
-           var $t = $(this);
-           var start_pos = $t.data('start_pos');
-           var diff = ui.position.left - start_pos.left;
-           var days = Math.round(diff / day_width);
+                if ($t.hasClass('task_todo'))
+                    return false;
+            });
+        },
+        stop: function (event, ui)
+        {
+             var $t = $(this);
+            var start_pos = $t.data('start_pos');
+            var diff = ui.position.left - start_pos.left;
+            var days = Math.round(diff / day_width);
 
-           $t.removeData('start_pos');
-           $t.removeData('orig_html');
+            $t.removeData('start_pos');
+            $t.removeData('orig_html');
 
-           // Acquire Issue ID
-           var url = $(this).find('a.issue').attr('href');
-           url += '/move';
-           url += '?authenticity_token=' + encodeURIComponent(AUTH_TOKEN);
+            // Acquire Issue ID
+            var url = $(this).find('a.issue').attr('href');
+            url += '/move';
 
-           // Send update to server
-           $.post(url, {days: days, authenticity_token: AUTH_TOKEN}, function () {
-                   alert('yep');
-               }, "json"
-           );
-          
-           // Update the Gantt chart to show the relations on the updated position
-           drawGanttHandler();
-       }
-   });
+            // Send update to server
+            $.post(url, {days: days, authenticity_token: AUTH_TOKEN},
+                    function (response) {
+                        response = response[0];
+                        if (response.status == "ok")
+                        {
+                            console.log("Issue moved to " + response.start_date + "-" + response.due_date);
+                        }
+                        else
+                        {
+                            alert(response.error);
+                        }
+                    }, 
+                    "json"
+                )
+                .error(function () {
+                    alert('Saving issue failed!');      
+                });
+           
+            // Update the Gantt chart to show the relations on the updated position
+            drawGanttHandler();
+        }
+    });
 });
