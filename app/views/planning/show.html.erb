@@ -1,0 +1,52 @@
+<% @gantt.view = self %>
+<div class="contextual">
+<% if !@query.new_record? && @query.editable_by?(User.current) %>
+  <%= link_to l(:button_edit), edit_query_path(@query, :gantt => 1), :class => 'icon icon-edit' %>
+  <%= delete_link query_path(@query, :gantt => 1) %>
+<% end %>
+</div>
+
+<h2><%= @query.new_record? ? l(:label_planning) : h(@query.name) %></h2>
+
+<%= form_tag({:controller => 'planning', :action => 'show',
+             :project_id => @project, :month => params[:month],
+             :year => params[:year]},
+             :method => :get, :id => 'query_form') do %>
+<%= hidden_field_tag 'set_filter', '1' %>
+<fieldset id="filters" class="collapsible <%= @query.new_record? ? "" : "collapsed" %>">
+  <legend onclick="toggleFieldset(this);"><%= l(:label_filter_plural) %></legend>
+  <div style="<%= @query.new_record? ? "" : "display: none;" %>">
+    <%= render :partial => 'queries/filters', :locals => {:query => @query} %>
+  </div>
+</fieldset>
+<p class="buttons">
+Center on 
+<%= select_month(@gantt.month_from, :prefix => "month", :discard_type => true) %>
+<%= select_year(@gantt.year_from, :prefix => "year", :discard_type => true) %>
+
+<%= link_to_function l(:button_apply), '$("#query_form").submit()',
+                     :class => 'icon icon-checked' %>
+<%= link_to l(:button_clear), { :project_id => @project, :set_filter => 1 },
+            :class => 'icon icon-reload' %>
+<% if @query.new_record? && User.current.allowed_to?(:save_queries, @project, :global => true) %>
+  <%= link_to_function l(:button_save),
+                       "$('#query_form').attr('action', '#{ @project ? new_project_query_path(@project) : new_query_path }').submit();",
+                       :class => 'icon icon-save' %>
+<% end %>
+</p>
+<% end %>
+
+<div id="redmine_planning_panel" style="width: 100%; text-align: center;">
+    <button id="redmine_planning_back_button">Back 15 days</button>
+    <button id="redmine_planning_forward_button">Forward 15 days</button>
+</div>
+<div id="redmine_planning_chart">
+</div>
+
+<% content_for :header_tags do %>
+    <%= stylesheet_link_tag 'planning', :plugin => 'redmine_planning' %>
+    <%= javascript_include_tag 'raphael' %>
+    <%= javascript_include_tag 'jquery-mousewheel', :plugin => 'redmine_planning' %>
+    <%= javascript_include_tag 'planning', :plugin => 'redmine_planning' %>
+<% end %>
+
