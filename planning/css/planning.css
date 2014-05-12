@@ -1,0 +1,30 @@
+body
+{
+    font-family:        "DejaVu Sans", sans-serif;
+    font-size:          10pt;
+    color:              #444444;
+}
+
+a:link,
+a:visited,
+a:active
+{
+    text-decoration:    none;
+    color:              navy;
+}
+
+a:hover
+{
+    text-decoration:    none;
+}
+
+#content
+{
+    height:             100%;
+}
+
+#redmine_planning_chart
+{
+    height:             480px;
+    width:              100%;
+}
