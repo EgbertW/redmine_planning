@@ -1313,7 +1313,7 @@ jQuery(function () {
         if (rm_chart.relating)
             rm_chart.relating = null;
         else
-            rm_chart.deleting = true;
+            rm_chart.deleting = rm_chart.deleting ? true : false;
     });
 });
 
