@@ -39,7 +39,8 @@ class PlanningController < ApplicationController
       issues = @gantt.project_issues(project)
       @gantt.class.sort_issues!(issues)
       issues.each do |issue|
-        next if issue[:start_date].nil? or issue[:due_date].nil?
+        issue[:start_date] = Date.new() if issue[:start_date].nil?
+        issue[:due_date] = (issue[:start_date] + 5) if issue[:due_date].nil?
         identifier = nil
         projects.each do |prj|
           if prj.id == issue[:project_id]

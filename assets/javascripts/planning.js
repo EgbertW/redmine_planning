@@ -273,14 +273,6 @@ PlanningChart.prototype.addBackground = function ()
     this.bg.drag(function (dx, dy) {
         chart.viewbox.x = chart.viewbox.sx - dx;
         chart.viewbox.y = chart.viewbox.sy - dy;
-        //if (chart.viewbox.x < 0)
-        //    chart.viewbox.x = 0;
-        //if (chart.viewbox.x > chart.container.width() - chart.viewbox.w)
-        //    chart.viewbox.x = chart.container.width() - chart.viewbox.w;
-        //if (chart.viewbox.y < 0)
-        //    chart.viewbox.y = 0;
-        //if (chart.viewbox.y > chart.container.height() - chart.viewbox.h)
-        //    chart.viewbox.y = chart.container.height() - chart.viewbox.h;
         chart.paper.setViewBox(chart.viewbox.x, chart.viewbox.y, chart.viewbox.w, chart.viewbox.h);
     }, function () {
         chart.viewbox.sx = chart.viewbox.x;
@@ -291,12 +283,11 @@ PlanningChart.prototype.addBackground = function ()
 PlanningChart.prototype.reset = function()
 {
     this.paper.clear();
+    this.header = null;
     this.addBackground();
     this.drawHeader();
-    for (var k in this.issues)
-        this.issues = {'length': 0};
-    for (var k in this.relations)
-        this.relations = {'length': 0};
+    this.issues = {'length': 0};
+    this.relations = {'length': 0};
 };
 
 PlanningChart.prototype.drawHeader = function()
@@ -1080,8 +1071,7 @@ jQuery(function () {
         var f = $(this);
         var params = {};
         var values = f.serialize();
-        console.log(f.serializeArray());
-        jQuery.getJSON('/projects/' + project + '/plan/issues', values, updateIssues);//.error(errorHandler);
+        jQuery.getJSON('/projects/' + project + '/plan/issues', values, updateIssues);
     });
     setTimeout(function () {
         $('#query_form').submit();
@@ -1102,11 +1092,6 @@ jQuery(function () {
         rm_chart.draw();
     });
 });
-
-function errorHandler(xhr_request)
-{
-    alert('AJAX error');
-}
 
 function updateIssues(json)
 {
