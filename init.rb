@@ -21,6 +21,8 @@ Redmine::Plugin.register :redmine_planning do
 
   project_module :issue_tracking do
     permission :reschedule_issues, :moves => [:index, :move]
-    permission :plan_issues, :planning => [:show, :issues]
+    permission :plan_issues, :planning => [:show, :issues, :save]
   end
+
+  menu :project_menu, :redmine_planning, { :controller => :planning, :action => :show }, :caption => 'Plan', :after => :gantt, :param => :project_id
 end

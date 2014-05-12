@@ -81,13 +81,14 @@ function PlanningChart(options)
         issue_stroke_width: 2,
         issue_border_radius: 2,
         issue_resize_border: 3,
-        date_format: 'd/m/Y'
+        date_format: 'd/m/Y',
+        project: ''
     };
 
     if (!options)
         options = {};
 
-    this.options = jQuery.extend(options, defaults);
+    this.options = jQuery.extend(defaults, options);
 
     if (this.options['target'].substr(0, 1) == '#')
         this.options['target'] = this.options['target'].substr(1);
@@ -243,7 +244,10 @@ PlanningChart.prototype.removeIssue = function(id)
 PlanningChart.prototype.addRelation = function(relation)
 {
     if (this.relations[relation.id])
+    {
+        console.log('Relation ' + relation.id + ' is already in the chart. Skipping');
         return;
+    }
 
     if (!this.issues[relation.from])
     {
@@ -266,6 +270,23 @@ PlanningChart.prototype.removeRelation = function(id)
     {
         if (this.relations[id].element)
             this.relations[id].element.remove();
+        for (var k in this.relations[id].fromIssue.relations.outgoing)
+        {
+            if (this.relations[id].fromIssue.relations.outgoing[k].id = id)
+            {
+                delete this.relations[id].fromIssue.relations.outgoing[k];
+                break;
+            }
+        }
+        for (var k in this.relations[id].toIssue.relations.incoming)
+        {
+            if (this.relations[id].toIssue.relations.incoming[k].id = id)
+            {
+                delete this.relations[id].toIssue.relations.incoming[k];
+                break;
+            }
+        }
+
         delete this.relations[id];
     }
 }
@@ -372,6 +393,8 @@ PlanningChart.prototype.draw = function(redraw)
             continue;
         this.relations[k].draw();
     }
+
+    this.analyzeHierarchy();
 };
 
 PlanningChart.prototype.getScale = function()
@@ -432,7 +455,7 @@ PlanningChart.prototype.markDirty = function(issue)
 
 PlanningChart.prototype.saveDirty = function()
 {
-    var store = {"issues": [], "relations": []};
+    var store = {"issues": [], "relations": [], 'authenticity_token': AUTH_TOKEN};
     for (var id in this.dirty)
     {
         store.issues.push({
@@ -444,7 +467,9 @@ PlanningChart.prototype.saveDirty = function()
         this.dirty[id].orig_geometry = null;
         delete this.dirty[id].critical_path_determined;
     }
-    console.log(store);
+    $.post('/projects/' + this.options.project + '/plan', store, function (response) {
+        console.log(response); 
+    }, "json");
     this.dirty = {};
 }
 
@@ -529,9 +554,15 @@ PlanningIssue.prototype.move = function(delay, utime)
                 }
                 break;
             case "precedes":
-                if (r.toIssue.start_date < this.due_date)
+                var target = this.due_date;
+                if (r.delay !== null)
                 {
-                    var delay = this.due_date.subtract(r.toIssue.due_date);
+                    target = new Date(target.getTime());
+                    target = target.add(new DateInterval(86400000 * (r.delay + 1)));
+                }
+                if (r.toIssue.start_date < target)
+                {
+                    var delay = target.subtract(r.toIssue.due_date);
                     r.toIssue.move(delay);
                 }
                 break;
@@ -552,9 +583,15 @@ PlanningIssue.prototype.move = function(delay, utime)
                 }
                 break;
             case "precedes":
-                if (this.start_date < r.fromIssue.due_date)
+                var target = r.fromIssue.due_date;
+                if (r.delay !== null)
                 {
-                    var delay = this.start_date.subtract(r.fromIssue.due_date);
+                    target = new Date(target.getTime());
+                    target = target.add(new DateInterval(86400000 * (r.delay + 1)));
+                }
+                if (this.start_date < target)
+                {
+                    var delay = this.start_date.subtract(target);
                     r.fromIssue.move(delay);
                 }
                 break;
@@ -633,29 +670,47 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
                     if (type == "incoming")
                     {
                         r.fromIssue.calculateLimits(-1, ctime);
+                        var limit = r.fromIssue.min_due_date;
+                        if (limit && r.delay !== null)
+                        {
+                            // Enforce delay when set
+                            console.log(r.delay);
+                            limit = new Date(limit.getTime());
+                            limit = limit.add(new DateInterval(86400000 * (r.delay + 1)));
+                            console.log(limit);
+                        }
                         if (
-                            r.fromIssue.min_due_date !== null && 
+                            limit !== null && 
                             (
                                 this.min_start_date === null || 
-                                r.fromIssue.min_due_date > this.min_start_date
+                                limit > this.min_start_date
                             )
                         )
                         {
-                            this.min_start_date = r.fromIssue.min_due_date;
+                            this.min_start_date = limit;
                         }
                     }
                     else
                     {
                         r.toIssue.calculateLimits(1, ctime);
+                        var limit = r.toIssue.max_start_date;
+                        if (limit && r.delay !== null)
+                        {
+                            // Enforce delay when set
+                            limit = new Date(limit.getTime());
+                            limit = limit.add(new DateInterval(-86400000 * (r.delay + 1)));
+                            console.log(r.delay);
+                            console.log(limit);
+                        }
                         if (
-                            r.toIssue.max_start_date !== null && 
+                            limit !== null && 
                             (
                                 this.max_due_date === null || 
-                                r.toIssue.max_start_date < this.max_due_date
+                                limit < this.max_due_date
                             )
                         )
                         {
-                            this.max_due_date = r.toIssue.max_start_date;
+                            this.max_due_date = limit;
                         }
                     }
                     break;
@@ -738,9 +793,15 @@ PlanningIssue.prototype.checkConsistency = function(resize)
                 }
                 break;
             case "precedes":
-                if (r.toIssue.start_date < this.due_date)
+                var target = this.due_date;
+                if (r.delay !== null)
                 {
-                    var delay = this.due_date.subtract(r.toIssue.start_date);
+                    target = new Date(target.getTime());
+                    target = target.add(new DateInterval(86400000 * (r.delay + 1)));
+                }
+                if (r.toIssue.start_date < target)
+                {
+                    var delay = target.subtract(r.toIssue.start_date);
                     r.toIssue.move(delay);
                 }
                 break;
@@ -761,9 +822,15 @@ PlanningIssue.prototype.checkConsistency = function(resize)
                 }
                 break;
             case "precedes":
-                if (this.start_date < r.fromIssue.due_date)
+                var target = r.fromIssue.due_date;
+                if (r.delay !== null)
                 {
-                    var delay = this.start_date.subtract(r.fromIssue.due_date);
+                    target = new Date(target.getTime());
+                    target = target.add(new DateInterval(86400000 * (r.delay + 1)));
+                }
+                if (this.start_date < target)
+                {
+                    var delay = this.start_date.subtract(target);
                     r.fromIssue.move(delay);
                 }
                 break;
@@ -833,17 +900,18 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
 
 function PlanningIssue_click()
 {
-    if (!this.chart.relating)
+    var chart = this.chart;
+    if (!chart.relating)
         return;
 
-    if (!this.chart.relating.from)
+    if (!chart.relating.from)
     {
-        this.chart.relating.from = this.id;
+        chart.relating.from = this.id;
         return;
     }
 
-    var source = this.chart.issues[this.chart.relating.from];
-    var type = this.chart.relating.type;
+    var source = chart.issues[this.chart.relating.from];
+    var type = chart.relating.type;
 
     // Check if the target is acceptable
     if (type == "blocks" && this.due_date < source.due_date)
@@ -851,26 +919,57 @@ function PlanningIssue_click()
     if (type == "precedes" && this.start_date < source.due_date)
         return;
 
-    this.chart.relating.to = this.id;
-    this.chart.relating.id = Math.floor(Math.random() * 10000) + 1000;
-    var relation = new PlanningIssueRelation(this.chart.relating);
-    this.chart.addRelation(relation);
-    
-    // Set up additional info
-    relation.fromIssue = this.chart.issues[relation.from];
-    relation.toIssue = this.chart.issues[relation.to];
-    relation.fromIssue.relations.outgoing.push(relation);
-    relation.toIssue.relations.incoming.push(relation);
+    chart.relating.to = this.id;
 
-    // Draw the relation
-    relation.draw();
+    var new_relation = this.chart.relating;
+    new_relation.delay = null;
+    if (new_relation.type == "precedes")
+        new_relation.delay = this.start_date.subtract(source.due_date).days() - 1;
+    chart.relating = null;
 
-    // Clear out the structure
-    this.chart.relating = null;
+    jQuery.post('/issues/' + new_relation.from + '/relations', {
+        'authenticity_token': AUTH_TOKEN,
+        'commit': 'Add',
+        'relation': {
+            'issue_to_id': new_relation.to,
+            'relation_type': new_relation.type,
+            'delay': new_relation.delay
+        },
+        'utf': '✓'
+    }, function (response) {
+        var pattern = /a href=\\"\/relations\/([0-9]+)\\"/g;
+        var m = response.match(pattern);
+
+        if (!m)
+        {
+            alert('Adding relation failed');
+            return;
+        }
+        
+        var last_match = m[m.length - 1];
+        var m = pattern.exec(last_match);
+        new_relation.id = m[1];
+
+        var relation = new PlanningIssueRelation(new_relation);
+        chart.addRelation(relation);
+        
+        // Set up additional info
+        relation.fromIssue = chart.issues[relation.from];
+        relation.toIssue = chart.issues[relation.to];
+        relation.fromIssue.relations.outgoing.push(relation);
+        relation.toIssue.relations.incoming.push(relation);
+
+        // Draw the relation
+        relation.draw();
+    }, "script");
+
 }
 
 function PlanningIssue_dragStart()
 {
+    if (this.chart.relating || this.chart.deleting)
+        return;
+
     jQuery('.planning-tooltip').remove();
     this.dragging = true;
     this.backup();
@@ -881,6 +980,9 @@ function PlanningIssue_dragStart()
 
 function PlanningIssue_dragMove(dx, dy, x, y)
 {
+    if (this.chart.relating || this.chart.deleting)
+        return;
+
     var chart = this.chart;
     var s = this.chart.getScale();
     dx /= s[0];
@@ -932,6 +1034,9 @@ function PlanningIssue_dragMove(dx, dy, x, y)
 
 function PlanningIssue_dragEnd()
 {
+    if (this.chart.relating || this.chart.deleting)
+        return;
+
     this.dragging = false;
     this.chart.saveDirty();
     if (this.critical_lines)
@@ -1014,9 +1119,35 @@ function PlanningIssueRelation(data)
     this.to = data['to'];
     this.type = data['type'];
     this.id = data['id'];
+    this.delay = data['delay'] ? data['delay'] : null;
 
     this.element = null;
     this.chart = null;
+}
+
+function PlanningIssueRelation_click(e)
+{
+    if (!this.chart.deleting)
+        return;
+
+    this.chart.deleting = false;
+    var type = this.type;
+
+    var relation = this;
+
+    if (confirm("Are you sure you want to remove the " + this.type + " relation from " + this.from + " to " + this.to))
+    {
+        $.ajax({
+            url: '/relations/' + this.id,
+            data: {'authenticity_token': AUTH_TOKEN},
+            type: 'DELETE',
+            success: function(result) {
+                relation.element.remove();
+                relation.chart.removeRelation(relation.id);
+            },
+            dataType: 'script'
+        });
+    }
 }
 
 /**
@@ -1113,6 +1244,7 @@ PlanningIssueRelation.prototype.draw = function()
             'arrow-end': this.type == "blocks" ? 'diamond-wide-long' : 'classic-wide-long',
             'stroke-width': 2
         });
+        this.element.click(PlanningIssueRelation_click, this);
     }
     else
         this.element.attr('path', path);
@@ -1140,7 +1272,7 @@ jQuery(function () {
 
     project = project[1]
 
-    rm_chart = new PlanningChart();
+    rm_chart = new PlanningChart({'project': project});
 
     jQuery('#query_form').on('submit', function (e) {
         e.preventDefault();
@@ -1178,7 +1310,10 @@ jQuery(function () {
     });
 
     $('#redmine_planning_cancel_button').click(function () {
-        rm_chart.relating = null;
+        if (rm_chart.relating)
+            rm_chart.relating = null;
+        else
+            rm_chart.deleting = true;
     });
 });
 

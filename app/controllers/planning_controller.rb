@@ -23,6 +23,22 @@ class PlanningController < ApplicationController
     @gantt.query = @query if @query.valid?
   end
 
+  def save
+    Issue.transaction do
+      params[:issues].each do |k, update|
+          logger.error(update)
+          issue = Issue.find(update[:id])
+          issue[:start_date] = Date.parse(update[:start_date])
+          issue[:due_date] = Date.parse(update[:due_date])
+          issue.save!
+      end
+    end
+    response = {} 
+    respond_to do |format|
+      format.json { render json: response }
+    end
+  end
+
   def issues
     @gantt = Redmine::Helpers::Gantt.new(params)
     @gantt.project = @project
