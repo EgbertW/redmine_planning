@@ -92,6 +92,8 @@ function PlanningChart(options)
     if (this.options['target'].substr(0, 1) == '#')
         this.options['target'] = this.options['target'].substr(1);
 
+    var relating = null;
+
     this.issues = {'length': 0};
     this.relations = {'length': 0};
     this.dirty = {};
@@ -150,6 +152,13 @@ function PlanningChart(options)
         rm_chart.paper.setViewBox(rm_chart.viewbox.x, rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
     });
 }
+
+PlanningChart.prototype.createRelation = function(type)
+{
+    if (type !== "blocks" && type !== "precedes")
+        throw "Invalid relation: " + type;
+    this.relating = {'type': type, 'from': null, 'to': null};
+};
 
 PlanningChart.prototype.dayWidth = function()
 {
@@ -773,6 +782,33 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
     if (this.dragging)
         return;
 
+    if (this.chart.relating)
+    {
+        var allowed = true;
+        if (this.chart.relating.from)
+        {
+            var t = this.chart.relating.type;
+
+            var source = this.chart.issues[this.chart.relating.from];
+            if (t == "blocks" && this.due_date < source.due_date)
+                allowed = false;
+            else if (t == "precedes" && this.start_date < source.due_date)
+                allowed = false;
+
+        }
+        if (allowed)
+        {
+            this.element.attr('cursor', 'cell');
+            this.text.attr('cursor', 'cell');
+        }
+        else
+        {
+            this.element.attr('cursor', 'not-allowed');
+            this.text.attr('cursor', 'not-allowed');
+        }
+        return;
+    }
+
     var x = e.offsetX ? e.offsetX : e.layerX;
     var y = e.offsetY ? e.offsetY : e.layerY;
 
@@ -790,8 +826,47 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
     else
     {
         this.element.attr('cursor', 'move');
+        this.text.attr('cursor', 'move');
         showTooltip(this);
     }
+}
+
+function PlanningIssue_click()
+{
+    if (!this.chart.relating)
+        return;
+
+    if (!this.chart.relating.from)
+    {
+        this.chart.relating.from = this.id;
+        return;
+    }
+
+    var source = this.chart.issues[this.chart.relating.from];
+    var type = this.chart.relating.type;
+
+    // Check if the target is acceptable
+    if (type == "blocks" && this.due_date < source.due_date)
+        return;
+    if (type == "precedes" && this.start_date < source.due_date)
+        return;
+
+    this.chart.relating.to = this.id;
+    this.chart.relating.id = Math.floor(Math.random() * 10000) + 1000;
+    var relation = new PlanningIssueRelation(this.chart.relating);
+    this.chart.addRelation(relation);
+    
+    // Set up additional info
+    relation.fromIssue = this.chart.issues[relation.from];
+    relation.toIssue = this.chart.issues[relation.to];
+    relation.fromIssue.relations.outgoing.push(relation);
+    relation.toIssue.relations.incoming.push(relation);
+
+    // Draw the relation
+    relation.draw();
+
+    // Clear out the structure
+    this.chart.relating = null;
 }
 
 function PlanningIssue_dragStart()
@@ -896,6 +971,7 @@ PlanningIssue.prototype.draw = function()
         this.element.mousemove(PlanningIssue_changeCursor, this);
         this.element.mouseout(PlanningIssue_closeTooltip, this);
         this.element.drag(PlanningIssue_dragMove, PlanningIssue_dragStart, PlanningIssue_dragEnd, this, this, this);
+        this.element.click(PlanningIssue_click, this);
     }
     else
         this.element.attr(this.geometry);
@@ -918,6 +994,7 @@ PlanningIssue.prototype.draw = function()
         this.text.mousemove(PlanningIssue_changeCursor, this);
         this.text.mouseout(PlanningIssue_closeTooltip, this);
         this.text.drag(PlanningIssue_dragMove, PlanningIssue_dragStart, PlanningIssue_dragEnd, this, this, this);
+        this.text.click(PlanningIssue_click, this);
     }
     else
     {
@@ -1090,6 +1167,18 @@ jQuery(function () {
         rm_chart.viewbox.y = 0;
         rm_chart.paper.setViewBox(rm_chart.viewbox.x, rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
         rm_chart.draw();
+    });
+
+    $('#redmine_planning_block_button').click(function () {
+        rm_chart.createRelation("blocks");
+    });
+
+    $('#redmine_planning_precedes_button').click(function () {
+        rm_chart.createRelation("precedes");
+    });
+
+    $('#redmine_planning_cancel_button').click(function () {
+        rm_chart.relating = null;
     });
 });
 

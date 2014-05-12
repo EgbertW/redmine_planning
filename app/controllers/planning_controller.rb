@@ -21,14 +21,12 @@ class PlanningController < ApplicationController
     retrieve_query
     @query.group_by = nil
     @gantt.query = @query if @query.valid?
-
   end
 
   def issues
     @gantt = Redmine::Helpers::Gantt.new(params)
     @gantt.project = @project
     retrieve_query
-    logger.error(@query)
     @query.group_by = nil
     @gantt.query = @query if @query.valid?
 
@@ -61,7 +59,6 @@ class PlanningController < ApplicationController
     end
     @gantt.relations.each do |from_relation, relations|
         relations.each do |relation|
-            logger.error(relation);
             response[:relations].push({
                 :id => relation[:id],
                 :from => relation[:issue_from_id],
@@ -73,8 +70,6 @@ class PlanningController < ApplicationController
     end
 
     respond_to do |format|
-      format.html { }
-      #format.json { render json: [:status => :ok, :error => '', :issues => issues] }
       format.json { render json: response }
     end
   end
