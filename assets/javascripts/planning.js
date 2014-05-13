@@ -1197,9 +1197,14 @@ PlanningIssue.prototype.draw = function()
     }
     else
     {
+        var n = this.name;
+        var max_length = this.geometry['width'] / 8;
+        if (n.length > max_length)
+            n = this.name.substring(0, max_length) + "...";
         this.text.attr({
             x: this.geometry.x + (this.geometry.width / 2),
-            y: this.geometry.y + (this.geometry.height / 2)
+            y: this.geometry.y + (this.geometry.height / 2),
+            text: n
         });
     }
 
