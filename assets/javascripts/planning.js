@@ -231,6 +231,9 @@ PlanningChart.prototype.dayWidth = function()
 
 PlanningChart.prototype.formatDate = function(date)
 {
+    if (!date || date.getFullYear() == "1970")
+        return "Not set";
+
     var d = date.getDate();
     var m = date.getMonth() + 1;
     var y = date.getYear();
@@ -584,11 +587,13 @@ PlanningIssue.prototype.update = function()
 {
     // Recalculate geometry
     var base = this.chart.base_date;
+    var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : getToday().subtract(base).days();
+    var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
     this.geometry = {
-        x: this.chart.options.margin[0] + (this.start_date.subtract(base).days() * this.chart.dayWidth()),
+        x: this.chart.options.margin[0] + (startDay * this.chart.dayWidth()),
         y: this.chart.options.margin[1] + this.idx * (this.chart.options.issue_height + this.chart.options.spacing[1]),
         height: this.chart.options.issue_height,
-        width: this.chart.dayWidth() * this.due_date.subtract(this.start_date).days()
+        width: this.chart.dayWidth() * nDays
     };
 
     return this.draw();
@@ -599,7 +604,13 @@ PlanningIssue.prototype.backup = function()
     if (!this.orig_geometry)
         this.orig_geometry = jQuery.extend({}, this.geometry);
     if (!this.orig_data)
+    {
         this.orig_data = {'start_date': this.start_date, 'due_date': this.due_date};
+        if (this.orig_data.start_date == null || this.orig_data.start_date.getFullYear() == "1970")
+            this.orig_data.start_date = getToday();
+        if (this.orig_data.due_date == null || this.orig_data.due_date.getFullYear() == "1970")
+            this.orig_data.due_date = this.orig_data.start_date.add(DateInterval.createDays(1));
+    }
     this.chart.markDirty(this);
 };
 
@@ -1134,10 +1145,14 @@ PlanningIssue.prototype.draw = function()
             this.geometry.height,
             this.chart.options.issue_border_radius
         );
+        var fill = this.chart.options.issue_fill_color;
+        if (this.start_date == null || this.due_date == null)
+            fill = '#f66';
+
         this.element.toFront();
         this.element.attr({
             'stroke': this.chart.options.issue_stroke_color,
-            'fill': this.chart.options.issue_fill_color,
+            'fill': fill,
             'r': this.chart.options.issue_border_radius
         });
 
@@ -1149,7 +1164,14 @@ PlanningIssue.prototype.draw = function()
         this.chart.elements.issues.push(this.element);
     }
     else
+    {
         this.element.attr(this.geometry);
+
+        var fill = this.chart.options.issue_fill_color;
+        if (this.start_date == null || this.due_date == null)
+            fill = '#f66';
+        this.element.attr('fill', fill);
+    }
 
     if (!this.text)
     {
