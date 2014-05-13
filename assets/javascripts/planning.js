@@ -64,9 +64,9 @@ function showTooltip(issue)
     });
 
     var parent_issue = 'none';
-    if (issue.parent)
+    if (issue.parent_issue)
     {
-        parent_issue = issue.parent.tracker + ' #' + issue.parent.id + ': ' + issue.parent.name;
+        parent_issue = issue.parent_issue.tracker + ' #' + issue.parent_issue.id + ': ' + issue.parent_issue.name;
     }
     else if (issue.parent_id)
     {
@@ -108,6 +108,8 @@ function PlanningChart(options)
         issue_nonleaf_stroke_width: 3,
         issue_border_radius: 2,
         issue_resize_border: 3,
+        parent_link_stroke_color: '#66f',
+        relation_stroke_color: '#f00',
         date_format: 'd/m/Y',
         project: ''
     };
@@ -484,6 +486,8 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
 PlanningChart.prototype.draw = function(redraw)
 {
     this.drawHeader();
+
+    this.analyzeHierarchy();
     for (var k in this.issues)
     {
         if (k == "length")
@@ -497,8 +501,6 @@ PlanningChart.prototype.draw = function(redraw)
             continue;
         this.relations[k].draw();
     }
-
-    this.analyzeHierarchy();
 };
 
 PlanningChart.prototype.getScale = function()
@@ -538,8 +540,8 @@ PlanningChart.prototype.analyzeHierarchy = function()
 
         if (this.issues[k].parent_id != null && this.issues[this.issues[k].parent_id])
         {
-            this.issues[k].parent = this.issues[this.issues[k].parent_id];
-            this.issues[k].parent.children.push(this.issues[k]);
+            this.issues[k].parent_issue = this.issues[this.issues[k].parent_id];
+            this.issues[k].parent_issue.children.push(this.issues[k]);
         }
     }
 
@@ -602,7 +604,7 @@ function PlanningIssue(data)
     this.tracker = data['tracker'];
     this.leaf = data['leaf'] ? true : false;
     this.parent_id = data['parent'];
-    this.parent = null;
+    this.parent_issue = null;
     this.children = [];
 
     this.relations = {};
@@ -634,7 +636,6 @@ PlanningIssue.prototype.update = function()
 {
     // Recalculate geometry
     var base = this.chart.base_date;
-    //console.log(this.start_date);
     var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : getToday().subtract(base).days();
     var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
     this.geometry = {
@@ -892,7 +893,7 @@ PlanningIssue.prototype.checkParents = function ()
 {
     // Check parents to stretch along
     var cur_child = this;
-    var cur_parent = this.parent;
+    var cur_parent = this.parent_issue;
     while (cur_parent)
     {
         var cur_start_date = null;
@@ -914,7 +915,7 @@ PlanningIssue.prototype.checkParents = function ()
             cur_parent.update();
         }
         cur_child = cur_parent;
-        cur_parent = cur_child.parent;
+        cur_parent = cur_child.parent_issue;
     }
 }
 
@@ -1299,6 +1300,31 @@ PlanningIssue.prototype.draw = function()
         });
     }
 
+    if (this.parent_issue)
+    {
+        if (this.parent_issue.geometry)
+        {
+            var x = Math.round(this.geometry.x + (this.geometry.width / 2.0));
+            var start_y = this.parent_issue.geometry.y + this.parent_issue.geometry.height;
+            var end_y = this.geometry.y;
+            if (start_y > end_y)
+            {
+                start_y = this.geometry.y + this.geometry.height;
+                end_y = this.parent_issue.geometry.y;
+            }
+
+            var path = "M" + x + "," + start_y + "L" + x + "," + end_y;
+            if (this.parent_link)
+                this.parent_link.remove();
+            this.parent_link = this.chart.paper.path(path);
+            this.parent_link.attr({
+                'stroke-width': 1,
+                'stroke': this.chart.options.parent_link_stroke_color,
+                'stroke-dasharray': '--'
+            });
+        }
+    }
+
     return this;
 }
 
@@ -1431,7 +1457,7 @@ PlanningIssueRelation.prototype.draw = function()
     {
         this.element = this.chart.paper.path(path);
         this.element.attr({
-            'stroke': '#ff0000',
+            'stroke': this.chart.options.relation_stroke_color,
             'arrow-end': this.type == "blocks" ? 'diamond-wide-long' : 'classic-wide-long',
             'stroke-width': 2
         });
