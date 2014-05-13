@@ -1273,7 +1273,7 @@ PlanningIssue.prototype.draw = function()
         var n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
         var max_length = this.geometry['width'] / 8;
         if (n.length > max_length)
-            n = this.name.substring(0, max_length) + "...";
+            n = n.substring(0, max_length) + "...";
         this.text = this.chart.paper.text(
             this.geometry.x + (this.geometry.width / 2),
             this.geometry.y + (this.geometry.height / 2),
@@ -1295,7 +1295,7 @@ PlanningIssue.prototype.draw = function()
         var n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
         var max_length = this.geometry['width'] / 8;
         if (n.length > max_length)
-            n = this.name.substring(0, max_length) + "...";
+            n = n.substring(0, max_length) + "...";
         this.text.attr({
             x: this.geometry.x + (this.geometry.width / 2),
             y: this.geometry.y + (this.geometry.height / 2),
