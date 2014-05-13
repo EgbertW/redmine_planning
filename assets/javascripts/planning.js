@@ -1013,7 +1013,10 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
         return;
 
     if (!this.leaf)
+    {
+        showTooltip(this);
         return;
+    }
 
     if (this.chart.relating)
     {
