@@ -451,6 +451,16 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
     });
 
     this.header.push(today);
+
+    if (this.elements)
+    {
+        if (this.elements.relations)
+            this.elements.relations.toFront();
+        if (this.elements.issues)
+            this.elements.issues.toFront();
+        if (this.elements.issue_texts)
+            this.elements.issue_texts.toFront();
+    }
 };
 
 PlanningChart.prototype.draw = function(redraw)
