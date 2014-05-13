@@ -79,7 +79,10 @@ function PlanningChart(options)
     var defaults = {
         target: 'redmine_planning_chart',
         issue_height: 20,
-        zoom_level: 1,
+        zoom_level: 0,
+        min_zoom_level: -2,
+        max_zoom_level: 3,
+        zoom_factor: 1.5,
         margin: [10, 20],
         spacing: [10, 10],
         issue_fill_color: '#cccccc',
@@ -139,8 +142,9 @@ function PlanningChart(options)
             var v = e.deltaY > 0 ? -1 : (e.deltaY < 0 ? 1 : 0);
             var h = e.deltaX > 0 ? 1 : (e.deltaX < 0 ? -1 : 0);
 
-            var new_x = chart.viewbox.x + h * chart.dayWidth() * 4;
-            var new_y = chart.viewbox.y + v * chart.options.issue_height * 1;
+            var day_factor = Math.max(1, Math.pow(2, (-rm_chart.options.zoom_level) + 1));
+            var new_x = chart.viewbox.x + h * chart.dayWidth() * day_factor;
+            var new_y = chart.viewbox.y + v * (chart.options.issue_height + chart.options.spacing[1]) * 1;
 
             chart.setViewBox(new_x, new_y, chart.viewbox.w, chart.viewbox.h);
         }
@@ -149,15 +153,18 @@ function PlanningChart(options)
             var zoom = rm_chart.options.zoom_level;
 
             if (e.deltaY > 0)
-                zoom *= 2;
+                ++zoom;
             else if (e.deltaY < 0)
-                zoom /= 2;
-            zoom = Math.min(Math.max(0.25, zoom), 16);
+                --zoom;
+            var min_zoom_level = -2;
+            var zoom_upper_limit = 3;
+            var zoom_factor = 1.5;
+            zoom = Math.min(Math.max(rm_chart.options.min_zoom_level, zoom), rm_chart.options.max_zoom_level);
             rm_chart.options.zoom_level = zoom;
 
             // Determine new width and height
-            var new_w = Math.round(rm_chart.container.width() / zoom);
-            var new_h = Math.round(rm_chart.container.height() / zoom);
+            var new_w = Math.round(rm_chart.container.width() / Math.pow(rm_chart.options.zoom_factor, zoom));
+            var new_h = Math.round(rm_chart.container.height() / Math.pow(rm_chart.options.zoom_factor,zoom));
 
             // We want the center to go to the point where the scroll button was hit
             var center_pos = rm_chart.clientToCanvas(e.offsetX, e.offsetY);
@@ -345,7 +352,8 @@ PlanningChart.prototype.addBackground = function ()
     var chart = this;
 
     this.bg.drag(function (dx, dy) {
-        var new_x = Math.round((chart.viewbox.sx - dx) / (chart.dayWidth() * 4)) * (chart.dayWidth() * 4);
+        var day_factor = Math.max(1, Math.pow(2, (-rm_chart.options.zoom_level) + 1));
+        var new_x = Math.round((chart.viewbox.sx - dx) / (chart.dayWidth() * 4)) * (chart.dayWidth() * day_factor);
         var new_y = Math.round((chart.viewbox.sy - dy) / (chart.options.issue_height)) * (chart.options.issue_height * 1);
 
         if (new_x != chart.viewbox.x || new_y != chart.viewbox.y)
