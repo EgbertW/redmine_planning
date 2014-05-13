@@ -415,8 +415,8 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
     var texts = this.paper.set();
     this.header = this.paper.set();
 
-    var nDays = end_date ? end_date.subtract(start_date).days() : Math.round(4 * this.viewbox.w / dw);
-    var startDay = start_date ? start_date.subtract(base).days() : Math.round(-2 * this.viewbox.w / dw);
+    var nDays = end_date ? end_date.subtract(start_date).days() : Math.round(1.5 * this.viewbox.w / dw);
+    var startDay = start_date ? start_date.subtract(base).days() : Math.round(-0.75 * this.viewbox.w / dw);
     while (startDay % 4 != 0)
         startDay -= 1;
     var endDay = startDay + nDays;
@@ -848,6 +848,40 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
         }
     }
 
+    // Check parent issue critical path
+    if (this.parent_issue)
+    {
+        this.parent_issue.calculateLimits(direction, ctime);
+        if (direction <= 0)
+        {
+            var limit = this.parent_issue.min_start_date;
+            if (
+                limit !== null &&
+                (
+                    this.min_start_date === null ||
+                    limit > this.min_start_date
+                )
+            )
+            {
+                this.min_start_date = limit;
+            }
+        }
+        if (direction >= 0)
+        {
+            var limit = this.parent_issue.max_due_date;
+            if (
+                limit !== null && 
+                (
+                    this.max_due_date === null || 
+                    limit < this.max_due_date
+                )
+            )
+            {
+                this.max_due_date = limit;
+            }
+        }
+    }
+
     if (direction != 0)
     {
         // If moving the endpoint is not allowed, check
@@ -913,6 +947,11 @@ PlanningIssue.prototype.checkParents = function ()
             cur_parent.start_date = cur_start_date;
             cur_parent.due_date = cur_due_date;
             cur_parent.update();
+
+            for (var k in cur_parent.relations.incoming)
+                cur_parent.relations.incoming[k].draw();
+            for (var k in cur_parent.relations.outgoing)
+                cur_parent.relations.outgoing[k].draw();
         }
         cur_child = cur_parent;
         cur_parent = cur_child.parent_issue;
@@ -1197,7 +1236,6 @@ function PlanningIssue_dragMove(dx, dy, x, y)
                 'vertical-align': 'middle'
             })
             .appendTo('body');
-        console.log('created');
     }
 
     var pos = $('#' + this.chart.options.target).position();
