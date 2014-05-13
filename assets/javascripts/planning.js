@@ -1171,6 +1171,42 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     var dWidth = dDays * this.chart.dayWidth();
     var direction = 1;
 
+    var pos = this.chart.clientToCanvas(x, y);
+    var tt_date;
+    if (cursor == "move")
+        tt_date = "Move to: " + this.chart.formatDate(this.start_date.add(movement));
+    else if (cursor == 'w-resize')
+        tt_date = "Start-date: " + this.chart.formatDate(this.start_date.add(movement));
+    else if (cursor == 'e-resize')
+        tt_date = "Due-date: " + this.chart.formatDate(this.due_date.add(movement));
+
+    var tt = $('.date-tooltip');
+    if (tt.length == 0)
+    {
+        tt = $('<div></div>')
+            .addClass('date-tooltip')
+            .css({
+                'position': 'absolute',
+                'display': 'table-cell',
+                'z-index': 100,
+                'border': 'thin solid black',
+                'width': '150px',
+                'height': '30px',
+                'background': '#ccc',
+                'text-align': 'center',
+                'vertical-align': 'middle'
+            })
+            .appendTo('body');
+        console.log('created');
+    }
+
+    var pos = $('#' + this.chart.options.target).position();
+    tt.css({
+        'left': x,
+        'top': y + 15
+    });
+    tt.text(tt_date);
+
     var prev_start_date = this.start_date;
     var prev_due_date = this.due_date;
     var resize = false;
