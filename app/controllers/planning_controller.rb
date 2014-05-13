@@ -14,7 +14,7 @@ class PlanningController < ApplicationController
   include QueriesHelper
 
   def show
-    Redmine::Plugin.mirror_assets(:redmine_planning)
+    #Redmine::Plugin.mirror_assets(:redmine_planning)
     @planning = {month_from: 5, year_from: 2014}
     @gantt = Redmine::Helpers::Gantt.new(params)
     @gantt.project = @project
