@@ -63,11 +63,23 @@ function showTooltip(issue)
         'max-width': '200'
     });
 
+    var parent_issue = 'none';
+    if (issue.parent)
+    {
+        parent_issue = issue.parent.tracker + ' #' + issue.parent.id + ': ' + issue.parent.name;
+    }
+    else if (issue.parent_id)
+    {
+        parent_issue = "#" + issue.parent_id + " (unavailable)";
+    }
+
     d.html(
-        '<p><strong>Issue #' + issue.id + ': ' + issue.name + '</strong></p>' +
+        '<p><strong>' + issue.tracker + ' #' + issue.id + ': ' + issue.name + '</strong></p>' +
+        '<p><strong>Parent task:</strong> ' + parent_issue + '</p>' +
         '<p><strong>Start date:</strong> ' + issue.chart.formatDate(issue.start_date) + '</p>' + 
         '<p><strong>Due date:</strong> ' + issue.chart.formatDate(issue.due_date) + '</p>' + 
-        '<p><strong>Description:</strong> ' + issue.description + '</p>'
+        '<p><strong>Description:</strong> ' + issue.description + '</p>' + 
+        '<p><strong>Leaf task:</strong> ' + (issue.leaf ? "yes" : "no") + '</p>'
     );
 
     $('body').append(d);
@@ -86,8 +98,14 @@ function PlanningChart(options)
         margin: [10, 20],
         spacing: [10, 10],
         issue_fill_color: '#cccccc',
-        issue_stroke_color: '#800000',
-        issue_stroke_width: 2,
+        issue_tracker_fill_color: {
+            'Task': '#ccc',
+            'Feature': '#fcc'
+        },
+        issue_leaf_stroke_color: '#800000',
+        issue_nonleaf_stroke_color: '#008000',
+        issue_leaf_stroke_width: 2,
+        issue_nonleaf_stroke_width: 3,
         issue_border_radius: 2,
         issue_resize_border: 3,
         date_format: 'd/m/Y',
@@ -507,8 +525,22 @@ PlanningChart.prototype.analyzeHierarchy = function()
     {
         if (k == "length")
             continue;
+
+        this.issues[k].children = [];
+    }
+    for (var k in this.issues)
+    {
+        if (k == "length")
+            continue;
         this.issues[k].relations.incoming = [];
         this.issues[k].relations.outgoing = [];
+        this.issues[k].children = [];
+
+        if (this.issues[k].parent_id != null && this.issues[this.issues[k].parent_id])
+        {
+            this.issues[k].parent = this.issues[this.issues[k].parent_id];
+            this.issues[k].parent.children.push(this.issues[k]);
+        }
     }
 
     // Add all relations to the corresponding issues
@@ -567,6 +599,11 @@ function PlanningIssue(data)
     this.description = data['name'];
     this.project = data['project'];
     this.id = data['id'];
+    this.tracker = data['tracker'];
+    this.leaf = data['leaf'] ? true : false;
+    this.parent_id = data['parent'];
+    this.parent = null;
+    this.children = [];
 
     this.relations = {};
     this.chart = null;
@@ -597,6 +634,7 @@ PlanningIssue.prototype.update = function()
 {
     // Recalculate geometry
     var base = this.chart.base_date;
+    //console.log(this.start_date);
     var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : getToday().subtract(base).days();
     var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
     this.geometry = {
@@ -691,6 +729,8 @@ PlanningIssue.prototype.move = function(delay, utime)
         }
         r.draw();
     }
+
+    this.checkParents();
 }
 
 PlanningIssue.prototype.calculateLimits = function(direction, ctime)
@@ -848,6 +888,36 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     }
 };
 
+PlanningIssue.prototype.checkParents = function ()
+{
+    // Check parents to stretch along
+    var cur_child = this;
+    var cur_parent = this.parent;
+    while (cur_parent)
+    {
+        var cur_start_date = null;
+        var cur_due_date = null;
+        for (var k in cur_parent.children)
+        {
+            if (cur_start_date == null || cur_start_date > cur_parent.children[k].start_date)
+                cur_start_date = cur_parent.children[k].start_date;
+            if (cur_due_date == null || cur_due_date < cur_parent.children[k].due_date)
+                cur_due_date = cur_parent.children[k].due_date;
+        }
+        if (
+            cur_parent.start_date != cur_start_date ||
+            cur_parent.due_date != cur_due_date
+        )
+        {
+            cur_parent.start_date = cur_start_date;
+            cur_parent.due_date = cur_due_date;
+            cur_parent.update();
+        }
+        cur_child = cur_parent;
+        cur_parent = cur_child.parent;
+    }
+}
+
 PlanningIssue.prototype.checkConsistency = function(resize)
 {
     var duration = this.due_date.subtract(this.start_date);
@@ -868,6 +938,9 @@ PlanningIssue.prototype.checkConsistency = function(resize)
 
     // Recalculate geometry based on dates
     this.update();
+
+    // Check parents
+    this.checkParents();
 
     for (var k in this.relations.outgoing)
     {
@@ -936,6 +1009,9 @@ function PlanningIssue_closeTooltip(e)
 function PlanningIssue_changeCursor(e, mouseX, mouseY)
 {
     if (this.dragging)
+        return;
+
+    if (!this.leaf)
         return;
 
     if (this.chart.relating)
@@ -1059,6 +1135,9 @@ function PlanningIssue_dragStart()
     if (this.chart.relating || this.chart.deleting)
         return;
 
+    if (!this.leaf)
+        return;
+
     jQuery('.planning-tooltip').remove();
     this.dragging = true;
     this.backup();
@@ -1070,6 +1149,9 @@ function PlanningIssue_dragStart()
 function PlanningIssue_dragMove(dx, dy, x, y)
 {
     if (this.chart.relating || this.chart.deleting)
+        return;
+
+    if (!this.dragging)
         return;
 
     var chart = this.chart;
@@ -1126,6 +1208,9 @@ function PlanningIssue_dragEnd()
     if (this.chart.relating || this.chart.deleting)
         return;
 
+    if (!this.dragging)
+        return;
+
     this.dragging = false;
     this.chart.saveDirty();
     if (this.critical_lines)
@@ -1156,12 +1241,13 @@ PlanningIssue.prototype.draw = function()
             this.chart.options.issue_border_radius
         );
         var fill = this.chart.options.issue_fill_color;
-        if (this.start_date == null || this.due_date == null)
-            fill = '#f66';
+        if (this.chart.options.issue_tracker_fill_color[this.tracker])
+            fill = this.chart.options.issue_tracker_fill_color[this.tracker];
 
         this.element.toFront();
         this.element.attr({
-            'stroke': this.chart.options.issue_stroke_color,
+            'stroke': this.leaf ? this.chart.options.issue_leaf_stroke_color : this.chart.options.issue_nonleaf_stroke_color,
+            'stroke-width': this.leaf ? this.chart.options.issue_leaf_stroke_width : this.chart.options.issue_nonleaf_stroke_width,
             'fill': fill,
             'r': this.chart.options.issue_border_radius
         });
@@ -1176,16 +1262,11 @@ PlanningIssue.prototype.draw = function()
     else
     {
         this.element.attr(this.geometry);
-
-        var fill = this.chart.options.issue_fill_color;
-        if (this.start_date == null || this.due_date == null)
-            fill = '#f66';
-        this.element.attr('fill', fill);
     }
 
     if (!this.text)
     {
-        var n = this.name;
+        var n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
         var max_length = this.geometry['width'] / 8;
         if (n.length > max_length)
             n = this.name.substring(0, max_length) + "...";
@@ -1207,7 +1288,7 @@ PlanningIssue.prototype.draw = function()
     }
     else
     {
-        var n = this.name;
+        var n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
         var max_length = this.geometry['width'] / 8;
         if (n.length > max_length)
             n = this.name.substring(0, max_length) + "...";

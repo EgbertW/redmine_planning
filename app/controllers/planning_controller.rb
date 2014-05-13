@@ -48,6 +48,17 @@ class PlanningController < ApplicationController
 
     projects = @gantt.projects
     response = {issues: [], relations: []}
+    trackers = Tracker.find(:all)
+
+    project_ids = {}
+    projects.each do |prj|
+        project_ids[prj.id] = prj.identifier
+    end
+
+    tracker_ids = {}
+    trackers.each do |tracker|
+        tracker_ids[tracker.id] = tracker[:name]
+    end
 
     Project.project_tree(projects) do |project, level|
       issues = @gantt.project_issues(project)
@@ -55,22 +66,20 @@ class PlanningController < ApplicationController
       issues.each do |issue|
         #issue[:start_date] = Date.new() if issue[:start_date].nil?
         #issue[:due_date] = (issue[:start_date] + 5) if issue[:due_date].nil?
-        identifier = nil
-        projects.each do |prj|
-          if prj.id == issue[:project_id]
-              identifier = prj.identifier
-              break
-          end
-        end
+        identifier = project_ids[issue[:project_id]]
+        tracker = tracker_ids[issue.tracker_id]
+        logger.error(issue[:tracker])
         response[:issues].push({
             :id => issue[:id],
             :start_date => issue[:start_date],
             :due_date => issue[:due_date],
             :project_id => issue[:project_id],
             :project_identifier => identifier,
-            :name => issue[:subject]
+            :tracker => tracker,
+            :name => issue[:subject],
+            :leaf => issue.leaf?,
+            :parent => issue.parent_issue_id
         })
-
       end
     end
     @gantt.relations.each do |from_relation, relations|
