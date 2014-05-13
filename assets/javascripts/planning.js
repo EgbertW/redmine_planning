@@ -1251,6 +1251,8 @@ function PlanningIssue_dragEnd()
     if (!this.dragging)
         return;
 
+    $('.date-tooltip').remove();
+
     this.dragging = false;
     this.chart.saveDirty();
     if (this.critical_lines)
