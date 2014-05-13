@@ -1174,11 +1174,11 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     var pos = this.chart.clientToCanvas(x, y);
     var tt_date;
     if (cursor == "move")
-        tt_date = "Move to: " + this.chart.formatDate(this.start_date.add(movement));
+        tt_date = "Move to: " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'w-resize')
-        tt_date = "Start-date: " + this.chart.formatDate(this.start_date.add(movement));
+        tt_date = "Start-date: " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'e-resize')
-        tt_date = "Due-date: " + this.chart.formatDate(this.due_date.add(movement));
+        tt_date = "Due-date: " + this.chart.formatDate(this.orig_data.due_date.add(movement));
 
     var tt = $('.date-tooltip');
     if (tt.length == 0)
