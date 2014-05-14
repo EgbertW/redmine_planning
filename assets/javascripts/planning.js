@@ -152,6 +152,7 @@ function PlanningChart(options)
     this.paper = Raphael(this.options['target']);
     var w = this.container.innerWidth();
     var h = this.container.innerHeight();
+    this.geometry_limits = {x: [-w / 2, -w / 2], y: [0, 0]};
     this.setViewBox(Math.round(w / -2), 0, w, h);
     this.addBackground();
     this.container.on('mousewheel', function (e) {
@@ -213,17 +214,21 @@ PlanningChart.prototype.setBaseDate = function(date)
     this.base_date = date;
 }
 
+function clamp(val, min, max)
+{
+    if (jQuery.isArray(min))
+        return Math.max(min[0], Math.min(min[1], val));
+    return Math.max(min, Math.min(max, val));
+}
+
 PlanningChart.prototype.setViewBox = function(x, y, w, h)
 {
-    // Backup, why?
-    var current = jQuery.extend({}, this.viewbox);
-
     // Set new viewbox
     if (!this.viewbox)
         this.viewbox = {};
 
-    this.viewbox.x = x;
-    this.viewbox.y = y;
+    this.viewbox.x = x = clamp(x, this.geometry_limits.x);
+    this.viewbox.y = y = clamp(y, this.geometry_limits.y);
     this.viewbox.w = w;
     this.viewbox.h = h;
     this.paper.setViewBox(x, y, w, h);
@@ -485,6 +490,9 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
 
 PlanningChart.prototype.draw = function(redraw)
 {
+    var w = this.container.width();
+    var h = this.container.height();
+    this.geometry_limits = {'x': [-w / 2, -w / 2], 'y': [0, 0]}
     this.drawHeader();
 
     this.analyzeHierarchy();
@@ -536,7 +544,6 @@ PlanningChart.prototype.analyzeHierarchy = function()
             continue;
         this.issues[k].relations.incoming = [];
         this.issues[k].relations.outgoing = [];
-        this.issues[k].children = [];
 
         if (this.issues[k].parent_id != null && this.issues[this.issues[k].parent_id])
         {
@@ -587,7 +594,40 @@ PlanningChart.prototype.saveDirty = function()
         this.dirty[id].orig_geometry = null;
         delete this.dirty[id].critical_path_determined;
     }
+    var chart = this;
     $.post('/projects/' + this.options.project + '/plan', store, function (response) {
+        for (var issue_id in response)
+        {
+            var issue = chart.issues[issue_id];
+            if (!issue)
+                continue;
+            var saved_start_date = new Date(response[issue_id].start_date);
+            var saved_due_date = new Date(response[issue_id].due_date);
+            
+            var update = [false, false];
+            if (saved_start_date.getTime() != issue.start_date.getTime())
+            {
+                issue.start_date = saved_start_date;
+                update[0] = true;
+            }
+            if (saved_due_date.getTime() != issue.due_date.getTime())
+            {
+                issue.due_date = saved_due_date;
+                update[1] = true;
+            }
+            if (update[0] || update[1])
+            {
+                issue.update();
+                if (update[0])
+                    for (var k in issue.relations.incoming)
+                        issue.relations.incoming[k].draw();
+                if (update[1])
+                    for (var k in issue.relations.outgoing)
+                        issue.relations.outgoing[k].draw();
+            }
+
+            issue.update();
+        }
     }, "json");
     this.dirty = {};
 }
@@ -644,6 +684,11 @@ PlanningIssue.prototype.update = function()
         height: this.chart.options.issue_height,
         width: this.chart.dayWidth() * nDays
     };
+
+    this.chart.geometry_limits.x[0] = Math.min(this.geometry.x - this.chart.options.margin[0], this.chart.geometry_limits.x[0]);
+    this.chart.geometry_limits.x[1] = Math.max(this.geometry.x - this.chart.options.margin[0], this.chart.geometry_limits.x[1]);
+    this.chart.geometry_limits.y[0] = Math.min(this.geometry.y - this.chart.options.margin[1], this.chart.geometry_limits.y[0]);
+    this.chart.geometry_limits.y[1] = Math.max(this.geometry.y - this.chart.options.margin[1], this.chart.geometry_limits.y[1]);
 
     return this.draw();
 }
@@ -940,8 +985,8 @@ PlanningIssue.prototype.checkParents = function ()
                 cur_due_date = cur_parent.children[k].due_date;
         }
         if (
-            cur_parent.start_date != cur_start_date ||
-            cur_parent.due_date != cur_due_date
+            cur_parent.start_date.getTime() != cur_start_date.getTime() ||
+            cur_parent.due_date.getTime() != cur_due_date.getTime()
         )
         {
             cur_parent.start_date = cur_start_date;

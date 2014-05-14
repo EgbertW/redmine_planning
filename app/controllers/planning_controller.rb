@@ -14,7 +14,7 @@ class PlanningController < ApplicationController
   include QueriesHelper
 
   def show
-    #Redmine::Plugin.mirror_assets(:redmine_planning)
+    Redmine::Plugin.mirror_assets(:redmine_planning)
     @planning = {month_from: 5, year_from: 2014}
     @gantt = Redmine::Helpers::Gantt.new(params)
     @gantt.project = @project
@@ -24,6 +24,7 @@ class PlanningController < ApplicationController
   end
 
   def save
+    issue_list = []
     Issue.transaction do
       params[:issues].each do |k, update|
           logger.error(update)
@@ -31,9 +32,27 @@ class PlanningController < ApplicationController
           issue[:start_date] = Date.parse(update[:start_date])
           issue[:due_date] = Date.parse(update[:due_date])
           issue.save!
+          issue_list.push(issue)
       end
     end
+    
+    # Give feedback, as no errors doesn't indicate nothing changed
     response = {} 
+    issue_list.each do |issue|
+      # It seems that when you save an issue, the state of the object may not be
+      # equal to that in the database, due to validation correction. Especially
+      # for parent tasks, a reload is needed.
+      issue.reload
+      response[issue.id] = {start_date: issue.start_date, due_date: issue.due_date}
+      
+      # Add all parents as they might've been updated as well
+      parent = issue.parent
+      while not parent.nil? do
+        response[parent.id] = {start_date: parent.start_date, due_date: parent.due_date}
+        parent = parent.parent
+      end
+    end
+
     respond_to do |format|
       format.json { render json: response }
     end
