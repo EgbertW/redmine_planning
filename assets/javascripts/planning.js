@@ -1633,12 +1633,12 @@ jQuery(function () {
 
     $('#redmine_planning_back_button').click(function () {
         rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(-16)));
-        rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), 0, rm_chart.viewbox.w, rm_chart.viewbox.h);
+        rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
         rm_chart.draw();
     });
     $('#redmine_planning_forward_button').click(function () {
         rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(16)));
-        rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), 0, rm_chart.viewbox.w, rm_chart.viewbox.h);
+        rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
         rm_chart.draw();
     });
 
