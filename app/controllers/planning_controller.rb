@@ -71,7 +71,7 @@ class PlanningController < ApplicationController
 
     project_ids = {}
     projects.each do |prj|
-        project_ids[prj.id] = prj.identifier
+        project_ids[prj.id] = {identifier: prj.identifier, name: prj.name}
     end
 
     tracker_ids = {}
@@ -85,7 +85,7 @@ class PlanningController < ApplicationController
       issues.each do |issue|
         #issue[:start_date] = Date.new() if issue[:start_date].nil?
         #issue[:due_date] = (issue[:start_date] + 5) if issue[:due_date].nil?
-        identifier = project_ids[issue[:project_id]]
+        prj = project_ids[issue[:project_id]]
         tracker = tracker_ids[issue.tracker_id]
         logger.error(issue[:tracker])
         response[:issues].push({
@@ -93,7 +93,8 @@ class PlanningController < ApplicationController
             :start_date => issue[:start_date],
             :due_date => issue[:due_date],
             :project_id => issue[:project_id],
-            :project_identifier => identifier,
+            :project_identifier => prj[:identifier],
+            :project_name => prj[:name],
             :tracker => tracker,
             :name => issue[:subject],
             :leaf => issue.leaf?,

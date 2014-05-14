@@ -39,3 +39,60 @@ svg text
     -ms-user-select: none;
     user-select: none;
 }
+
+div.planning-tooltip
+{
+    position:           absolute;
+    border:             thin solid #aa0;
+    border-radius:      3px;
+    background-color:   #fff;
+    padding:            5;
+    font-size:          8pt;
+    width:              400px;
+    z-index:            100;
+    padding:            5px;
+}
+
+div.planning-tooltip table
+{
+    
+
+}
+div.planning-tooltip table,
+div.planning-tooltip table tr,
+div.planning-tooltip table th,
+div.planning-tooltip table td
+{
+    margin:             0;
+    padding:            0;
+    border-collapse:    0;
+    border:             none;
+}
+
+div.planning-tooltip table th
+{
+    font-weight:        bold;
+    text-align:         right;
+    vertical-align:     top;
+    width:              100px;
+}
+
+div.date-tooltip
+{
+    position:           absolute;
+    border:             thin solid #aa0;
+    border-radius:      3px;
+    background-color:   #fff;
+    z-index:            100;
+    padding:            5px;
+
+    display:            table-cell;
+    text-align:         center;
+    vertical-align:     middle;
+}
+
+div.date-tooltip p
+{
+    padding:            0;
+    margin:             0;
+}

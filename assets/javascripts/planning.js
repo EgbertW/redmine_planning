@@ -54,35 +54,56 @@ function showTooltip(issue)
     
     d.addClass('planning-tooltip')
     .css({
-        'position': 'absolute',
         'left': x,
         'top': y,
-        'border': 'thin solid #444',
-        'background-color': '#fff',
-        'padding': '5',
-        'max-width': '200'
     });
 
     var parent_issue = 'none';
     if (issue.parent_issue)
     {
-        parent_issue = issue.parent_issue.tracker + ' #' + issue.parent_issue.id + ': ' + issue.parent_issue.name;
+        parent_issue = '<a href="/issues/' + issue.parent_issue.id + '" target="_blank">' 
+            + issue.parent_issue.tracker + ' #' + issue.parent_issue.id + ': ' + issue.parent_issue.name
+            + '</a>';
     }
     else if (issue.parent_id)
     {
-        parent_issue = "#" + issue.parent_id + " (unavailable)";
+        parent_issue = '<a href="/issues/' + issue.parent_id + '" target="_blank">'
+            + "#" + issue.parent_id + " (unavailable)";
     }
 
+    var desc = issue.description;
+    if (desc.length > 500)
+        desc = desc.substr(0, 500);
+
     d.html(
-        '<p><strong>' + issue.tracker + ' #' + issue.id + ': ' + issue.name + '</strong></p>' +
-        '<p><strong>Parent task:</strong> ' + parent_issue + '</p>' +
-        '<p><strong>Start date:</strong> ' + issue.chart.formatDate(issue.start_date) + '</p>' + 
-        '<p><strong>Due date:</strong> ' + issue.chart.formatDate(issue.due_date) + '</p>' + 
-        '<p><strong>Description:</strong> ' + issue.description + '</p>' + 
-        '<p><strong>Leaf task:</strong> ' + (issue.leaf ? "yes" : "no") + '</p>'
+        '<table>' +
+        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + issue.tracker + ' <a href="/issues/' + issue.id + '" target="_blank">#' + issue.id + '</a>: ' + issue.name + '</th></tr>' +
+        '<tr><th>Project:</th><td><a href="/projects/' + issue.project_identifier + '" target="_blank">' + issue.project + '</a></td></tr>' + 
+        '<tr><th>Parent task:</th><td>' + parent_issue + '</td></tr>' +
+        '<tr><th>Start date:</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
+        '<tr><th>Due date:</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
+        '<tr><th>Description:</th><td>' + issue.description + '</td></tr>' + 
+        '<tr><th>Leaf task:</th><td>' + (issue.leaf ? "yes" : "no") + '</td></tr>'
     );
 
     $('body').append(d);
+
+    // Add hover handler
+    d.hover(function () {
+        jQuery(this).show();
+        var to = jQuery(this).data('timeout');
+        if (to)
+        {
+            clearTimeout(to);
+            jQuery(this).data('timeout', null);
+        }
+    }, function () {
+        var tt = jQuery(this);
+        var to = setTimeout(function () {
+            tt.fadeOut(function() {jQuery(this).remove()});
+        }, 1000);
+        tt.data('timeout', to);
+    });
 }
 
 /* Chart class definition */
@@ -639,7 +660,9 @@ function PlanningIssue(data)
     this.due_date = new Date(data['due_date']);
     this.name = data['name'];
     this.description = data['name'];
-    this.project = data['project'];
+    this.project = data['project_name'];
+    this.project_identifier = data['project_identifier'];
+    this.project_id = data['project_id'];
     this.id = data['id'];
     this.tracker = data['tracker'];
     this.leaf = data['leaf'] ? true : false;
@@ -1088,7 +1111,11 @@ PlanningIssue.prototype.checkConsistency = function(resize)
 
 function PlanningIssue_closeTooltip(e)
 {
-    jQuery('.planning-tooltip').remove();
+    var tt = jQuery('.planning-tooltip');
+    var to = setTimeout(function () {
+        tt.fadeOut(function () {jQuery(this).remove();});
+    }, 1000);
+    tt.data('timeout', to);
 }
 
 function PlanningIssue_changeCursor(e, mouseX, mouseY)
@@ -1258,28 +1285,17 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     var pos = this.chart.clientToCanvas(x, y);
     var tt_date;
     if (cursor == "move")
-        tt_date = "Move to: " + this.chart.formatDate(this.orig_data.start_date.add(movement));
+        tt_date = "<strong>Move to:</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'w-resize')
-        tt_date = "Start-date: " + this.chart.formatDate(this.orig_data.start_date.add(movement));
+        tt_date = "<strong>Start-date:</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'e-resize')
-        tt_date = "Due-date: " + this.chart.formatDate(this.orig_data.due_date.add(movement));
+        tt_date = "<strong>Due-date:</strong> " + this.chart.formatDate(this.orig_data.due_date.add(movement));
 
     var tt = $('.date-tooltip');
     if (tt.length == 0)
     {
         tt = $('<div></div>')
             .addClass('date-tooltip')
-            .css({
-                'position': 'absolute',
-                'display': 'table-cell',
-                'z-index': 100,
-                'border': 'thin solid black',
-                'width': '150px',
-                'height': '30px',
-                'background': '#ccc',
-                'text-align': 'center',
-                'vertical-align': 'middle'
-            })
             .appendTo('body');
     }
 
@@ -1288,7 +1304,7 @@ function PlanningIssue_dragMove(dx, dy, x, y)
         'left': x,
         'top': y + 15
     });
-    tt.text(tt_date);
+    tt.html(tt_date);
 
     var prev_start_date = this.start_date;
     var prev_due_date = this.due_date;
