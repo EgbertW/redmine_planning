@@ -121,7 +121,7 @@ function PlanningChart(options)
         issue_fill_color: '#cccccc',
         issue_tracker_fill_color: {
             'Task': '#ccc',
-            'Feature': '#fcc'
+            'Feature': '#f99'
         },
         issue_leaf_stroke_color: '#800000',
         issue_nonleaf_stroke_color: '#008000',
