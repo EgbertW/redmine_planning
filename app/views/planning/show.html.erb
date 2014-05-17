@@ -38,10 +38,6 @@
   </div>
 </fieldset>
 <p class="buttons">
-Center on 
-<%= select_month(@gantt.month_from, :prefix => "month", :discard_type => true) %>
-<%= select_year(@gantt.year_from, :prefix => "year", :discard_type => true) %>
-
 <%= link_to_function l(:button_apply), '$("#query_form").submit()',
                      :class => 'icon icon-checked' %>
 <%= link_to l(:button_clear), { :project_id => @project, :set_filter => 1 },
@@ -51,6 +47,13 @@ Center on
                        "$('#query_form').attr('action', '#{ @project ? new_project_query_path(@project) : new_query_path }').submit();",
                        :class => 'icon icon-save' %>
 <% end %>
+</p>
+<p>
+Center on 
+<%= select_day(@gantt.date_from, :prefix => "planning_focus_day", :discard_type => true) %>
+<%= select_month(@gantt.month_from, :prefix => "planning_focus_month", :discard_type => true) %>
+<%= select_year(@gantt.year_from, :prefix => "planning_focus_year", :discard_type => true) %>
+
 </p>
 <% end %>
 

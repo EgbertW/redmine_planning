@@ -268,8 +268,8 @@ PlanningChart.prototype.setBaseDate = function(date)
     reference.setUTCMonth(1);
     reference.setUTCFullYear(2014);
 
-    var diff = base_date.subtract(reference) % 4;
-    base_date.add(DateInterval.createDays(-diff));
+    var diff = Math.round(base_date.subtract(reference).days()) % 4;
+    base_date = base_date.add(DateInterval.createDays(-diff));
     this.base_date = date;
 }
 
@@ -1717,16 +1717,18 @@ PlanningIssueRelation.prototype.draw = function()
 
 function setFocusDate()
 {
-    var base_month = $('select#month').val();
-    var base_year = $('select#year').val();
+    var base_month = $('select#planning_focus_month').val();
+    var base_year = $('select#planning_focus_year').val();
+    var base_day = $('select#planning_focus_day').val();
     var base_date = new Date();
 
     base_date.resetTime();
     base_date.setUTCFullYear(base_year);
     base_date.setUTCMonth(base_month - 1);
-    base_date.setUTCDate(1);
+    base_date.setUTCDate(base_day);
 
     rm_chart.setBaseDate(base_date);
+    rm_chart.draw();
 }
 
 jQuery(function () {
@@ -1746,6 +1748,12 @@ jQuery(function () {
         var values = f.serialize();
         jQuery.getJSON('/projects/' + project + '/plan/issues', values, updateIssues);
     });
+
+    setFocusDate();
+    jQuery('select#planning_focus_day').on('change', setFocusDate);
+    jQuery('select#planning_focus_month').on('change', setFocusDate);
+    jQuery('select#planning_focus_year').on('change', setFocusDate);
+
     setTimeout(function () {
         $('#query_form').submit();
     }, 500);
@@ -1792,6 +1800,5 @@ function updateIssues(json)
     for (var k in json['relations'])
         rm_chart.addRelation(new PlanningIssueRelation(json['relations'][k]));
 
-    setFocusDate();
     rm_chart.draw();
 }
