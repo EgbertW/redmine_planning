@@ -18,11 +18,21 @@ The major part of this plugin focuses on a new addition to the project pages, th
 * Interactive scrolling and panning
 * Configurable Javascript with different date formats, colors for trackers and branch or leaf issues.
 
+## Installation
+
+```
+$ cd /path/to/redmine/plugins
+$ git clone https://github.com/MadEgg/redmine_planning
+$ <restart web server>
+```
+
+This plugin uses no additional tables so no database migration is needed. You do, however, need to give the reschedule permission to users that you want to be able to use this plugin.
+
 ## Known issues
 * Critical Path Analysis may now work completely when parent issues are involved. **Planned fix**: Being worked on.
 * Since copied-to, duplicates and relates relations are not visualized, it is possible to attempt to create a new relation in the Planning chart which is not executed by the server because a relation already exists between these issues. The chart will not recognize failure currently so this will go unnoticed. **Planned fix**: at least recognize and reflect failure in the chart. Additionally, offer to replace existing relations with a blocked or precedes relation.
 * May behave a bit slow when many issues are related. **Planned fix**: Only render visible issues on the canvas and remove the invisible ones. Updates to the view box should update the visible issues.
-* The tooltip showing issue information may something get in the way when dragging issues. **Planned fix** do not show any other popups while moving.
+* The tooltip showing issue information may something get in the way when dragging issues. **Planned fix**: do not show any other popups while moving.
 
 # License
 Copyright 2014 Egbert van der Wal 
