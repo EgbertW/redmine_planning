@@ -12,7 +12,14 @@ DateInterval.createMinutes = function(days) { return new DateInterval(60000 * n)
 DateInterval.createSeconds = function(days) { return new DateInterval(1000 * n) };
 
 /* Inject DateInterval into Date class */
-Date.prototype.subtract = function (other) { return new DateInterval(this - other); };
+Date.prototype.subtract = function (other) { 
+    if (other instanceof Date)
+        return new DateInterval(this - other);
+    else if (other instanceof DateInterval)
+        return new Date(this.getTime() - other.ms);
+    else
+        throw "Invalid argument: " + other;
+};
 Date.prototype.add = function (interval) { var r = new Date(); r.setTime(this.getTime() + interval.ms); return r;};
 Date.prototype.toISODateString = function () { return this.getFullYear() + "-" + (this.getMonth() + 1) + "-" + this.getDate(); };
 Date.prototype.resetTime = function () { this.setUTCHours(0); this.setUTCMinutes(0); this.setUTCSeconds(0); };
@@ -616,7 +623,7 @@ PlanningChart.prototype.saveDirty = function()
         delete this.dirty[id].critical_path_determined;
     }
     var chart = this;
-    $.post('/projects/' + this.options.project + '/plan', store, function (response) {
+    $.post('/pla/projects/' + this.options.project + '/plan', store, function (response) {
         for (var issue_id in response)
         {
             var issue = chart.issues[issue_id];
@@ -731,14 +738,47 @@ PlanningIssue.prototype.backup = function()
     this.chart.markDirty(this);
 };
 
-PlanningIssue.prototype.move = function(delay, utime)
+PlanningIssue.prototype.move = function(d, arg1, arg2)
 {
-    this.start_date = this.start_date.add(delay);
-    this.due_date = this.due_date.add(delay);
-    this.backup(this);
+    if (d > 10)
+    {
+        console.log('too much depth');
+        return;
+    }
+    if (arg1 instanceof DateInterval && !arg2)
+    {
+        // Nothing to do
+        if (arg1.ms == 0)
+            return;
 
+        console.log("[" + d + "] Moving issue " + this.id + " from " + this.chart.formatDate(this.start_date) + "-" + this.chart.formatDate(this.due_date) + " by " + arg1.days() + " days");
+
+        this.start_date = this.start_date.add(arg1);
+        this.due_date = this.due_date.add(arg1);
+    }
+    else if (arg1 instanceof Date && arg2 instanceof Date)
+    {
+        if (arg1 >= arg2)
+            throw "Start date is equal to or later than due date";
+
+        if (this.start_date.getTime() == arg1.getTime() && this.due_date.getTime() == arg2.getTime())
+            return;
+
+        console.log("[" + d + "] Moving issue " + this.id + " from " + this.chart.formatDate(this.start_date) + "-" + this.chart.formatDate(this.due_date) + " to " + this.chart.formatDate(arg1) + "-" + this.chart.formatDate(arg2));
+
+        this.start_date = arg1;
+        this.due_date = arg2;
+    }
+    else
+    {
+    console.log(arg1);
+    console.log(arg2);
+        throw "Invalid arguments";
+    }
+
+    // Make sure the element is marked dirty
+    this.backup();
     this.update();
-    this.element.attr(this.geometry);
 
     // Update dependent issues
     for (var k in this.relations.outgoing)
@@ -750,21 +790,15 @@ PlanningIssue.prototype.move = function(delay, utime)
                 if (r.toIssue.due_date < this.due_date)
                 {
                     var delay = this.due_date.subtract(r.toIssue.due_date);
-                    r.toIssue.move(delay);
+                    console.log("Updating issue " + r.toIssue.id + " that is blocked by issue " + r.fromIssue.id);
+                    r.toIssue.move(d + 1, delay);
                 }
                 break;
             case "precedes":
-                var target = this.due_date;
-                if (r.delay !== null)
-                {
-                    target = new Date(target.getTime());
-                    target = target.add(DateInterval.createDays(r.delay + 1));
-                }
-                if (r.toIssue.start_date < target)
-                {
-                    var delay = target.subtract(r.toIssue.due_date);
-                    r.toIssue.move(delay);
-                }
+                var target = this.due_date.add(DateInterval.createDays(r.delay + 1));
+                var delay = target.subtract(r.toIssue.start_date);
+                console.log("OUT: Updating issue " + r.toIssue.id + " that is preceded by issue " + r.fromIssue.id + " (" + r.delay + " days)");
+                r.toIssue.move(d + 1, delay);
                 break;
         }
         r.draw();
@@ -779,27 +813,20 @@ PlanningIssue.prototype.move = function(delay, utime)
                 if (this.due_date < r.fromIssue.due_date)
                 {
                     var delay = this.due_date.subtract(r.fromIssue.due_date);
-                    r.fromIssue.move(delay);
+                    r.fromIssue.move(d + 1, delay);
                 }
                 break;
             case "precedes":
-                var target = r.fromIssue.due_date;
-                if (r.delay !== null)
-                {
-                    target = new Date(target.getTime());
-                    target = target.add(DateInterval.createDays(r.delay + 1));
-                }
-                if (this.start_date < target)
-                {
-                    var delay = this.start_date.subtract(target);
-                    r.fromIssue.move(delay);
-                }
+                var target = this.start_date.subtract(DateInterval.createDays(r.delay + 1));
+                var delay = target.subtract(r.fromIssue.due_date);
+                r.fromIssue.move(d + 1, delay);
                 break;
         }
         r.draw();
     }
 
-    this.checkParents();
+    // Check parent relations
+    this.checkParents(d);
 }
 
 PlanningIssue.prototype.calculateLimits = function(direction, ctime)
@@ -814,8 +841,42 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     this.max_due_date = null;
 
     var duration = this.due_date.subtract(this.start_date);
-    var minusDuration = new DateInterval(-duration.ms);
 
+    // Check parent issue critical path
+    if (this.parent_issue)
+    {
+        this.parent_issue.calculateLimits(direction, ctime);
+        if (direction <= 0)
+        {
+            var limit = this.parent_issue.min_start_date;
+            if (
+                limit !== null &&
+                (
+                    this.min_start_date === null ||
+                    limit > this.min_start_date
+                )
+            )
+            {
+                this.min_start_date = limit;
+            }
+        }
+        if (direction >= 0)
+        {
+            var limit = this.parent_issue.max_due_date;
+            if (
+                limit !== null && 
+                (
+                    this.max_due_date === null || 
+                    limit < this.max_due_date
+                )
+            )
+            {
+                this.max_due_date = limit;
+            }
+        }
+    }
+
+    // Check related tasks
     for (var type in this.relations)
     {
         if (direction > 0 && type == "incoming")
@@ -841,7 +902,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
                         r.fromIssue.calculateLimits(-1, ctime);
                         if (r.fromIssue.min_due_date !== null)
                         {
-                            var own_min_start = r.fromIssue.min_due_date.add(minusDuration);
+                            var own_min_start = r.fromIssue.min_due_date.subtract(duration);
                             if (
                                 this.min_start_date === null || 
                                 own_min_start > this.min_start_date
@@ -916,40 +977,6 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
         }
     }
 
-    // Check parent issue critical path
-    if (this.parent_issue)
-    {
-        this.parent_issue.calculateLimits(direction, ctime);
-        if (direction <= 0)
-        {
-            var limit = this.parent_issue.min_start_date;
-            if (
-                limit !== null &&
-                (
-                    this.min_start_date === null ||
-                    limit > this.min_start_date
-                )
-            )
-            {
-                this.min_start_date = limit;
-            }
-        }
-        if (direction >= 0)
-        {
-            var limit = this.parent_issue.max_due_date;
-            if (
-                limit !== null && 
-                (
-                    this.max_due_date === null || 
-                    limit < this.max_due_date
-                )
-            )
-            {
-                this.max_due_date = limit;
-            }
-        }
-    }
-
     if (direction != 0)
     {
         // If moving the endpoint is not allowed, check
@@ -963,7 +990,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     if (this.min_start_date)
         this.min_due_date = this.min_start_date.add(duration);
     if (this.max_due_date)
-        this.max_start_date = this.max_due_date.add(minusDuration);
+        this.max_start_date = this.max_due_date.subtract(duration);
 
     if (direction == 0)
     {
@@ -991,7 +1018,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     }
 };
 
-PlanningIssue.prototype.checkParents = function ()
+PlanningIssue.prototype.checkParents = function (d)
 {
     // Check parents to stretch along
     var cur_child = this;
@@ -1007,107 +1034,16 @@ PlanningIssue.prototype.checkParents = function ()
             if (cur_due_date == null || cur_due_date < cur_parent.children[k].due_date)
                 cur_due_date = cur_parent.children[k].due_date;
         }
-        if (
-            cur_parent.start_date.getTime() != cur_start_date.getTime() ||
-            cur_parent.due_date.getTime() != cur_due_date.getTime()
-        )
-        {
-            cur_parent.start_date = cur_start_date;
-            cur_parent.due_date = cur_due_date;
-            cur_parent.update();
 
-            for (var k in cur_parent.relations.incoming)
-                cur_parent.relations.incoming[k].draw();
-            for (var k in cur_parent.relations.outgoing)
-                cur_parent.relations.outgoing[k].draw();
-        }
+        // Update the parent to the new correct size
+        console.log("[" + this.id + "] Moving parent of " + cur_child.id + ": " + cur_parent.id);
+        cur_parent.move(d + 1, cur_start_date, cur_due_date);
+
+        // Traverse the tree to the root
         cur_child = cur_parent;
         cur_parent = cur_child.parent_issue;
     }
 }
-
-PlanningIssue.prototype.checkConsistency = function(resize)
-{
-    var duration = this.due_date.subtract(this.start_date);
-    var minusDuration = new DateInterval(-duration.ms);
-
-    if (this.min_start_date !== null && this.start_date < this.min_start_date)
-    {
-        this.start_date = this.min_start_date;
-        if (!resize)
-            this.due_date = this.min_due_date;
-    }
-    else if (this.max_due_date !== null && this.due_date > this.max_due_date)
-    {
-        this.due_date = this.max_due_date;
-        if (!resize)
-            this.start_date = this.max_start_date;
-    }
-
-    // Recalculate geometry based on dates
-    this.update();
-
-    // Check parents
-    this.checkParents();
-
-    for (var k in this.relations.outgoing)
-    {
-        var r = this.relations.outgoing[k];
-        switch (r.type)
-        {
-            case "blocks":
-                if (r.toIssue.due_date < this.due_date)
-                {
-                    var delay = this.due_date.subtract(r.toIssue.due_date);
-                    r.toIssue.move(delay);
-                }
-                break;
-            case "precedes":
-                var target = this.due_date;
-                if (r.delay !== null)
-                {
-                    target = new Date(target.getTime());
-                    target = target.add(DateInterval.createDays(r.delay + 1));
-                }
-                if (r.toIssue.start_date < target)
-                {
-                    var delay = target.subtract(r.toIssue.start_date);
-                    r.toIssue.move(delay);
-                }
-                break;
-        }
-        r.draw();
-    }
-
-    for (var k in this.relations.incoming)
-    {
-        var r = this.relations.incoming[k];
-        switch (r.type)
-        {
-            case "blocks":
-                if (this.due_date < r.fromIssue.due_date)
-                {
-                    var delay = this.due_date.subtract(r.fromIssue.due_date);
-                    r.fromIssue.move(delay);
-                }
-                break;
-            case "precedes":
-                var target = r.fromIssue.due_date;
-                if (r.delay !== null)
-                {
-                    target = new Date(target.getTime());
-                    target = target.add(DateInterval.createDays(r.delay + 1));
-                }
-                if (this.start_date < target)
-                {
-                    var delay = this.start_date.subtract(target);
-                    r.fromIssue.move(delay);
-                }
-                break;
-        }
-        r.draw();
-    }
-};
 
 function PlanningIssue_closeTooltip(e)
 {
@@ -1277,8 +1213,7 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     var cursor = this.element.attr('cursor');
     var dDays = Math.round(dx / chart.dayWidth());
     var movement = DateInterval.createDays(dDays);
-    var plus_one_day = DateInterval.createDays(1);
-    var minus_one_day = DateInterval.createDays(-1);
+    var one_day = DateInterval.createDays(1);
     var dWidth = dDays * this.chart.dayWidth();
     var direction = 1;
 
@@ -1306,40 +1241,50 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     });
     tt.html(tt_date);
 
-    var prev_start_date = this.start_date;
-    var prev_due_date = this.due_date;
+    var new_start = this.start_date;
+    var new_due = this.due_date;
     var resize = false;
     switch (cursor)
     {
         case 'w-resize':
-            var new_start = this.orig_data.start_date.add(movement);
+            new_start = this.orig_data.start_date.add(movement);
             if (new_start >= this.due_date)
-                this.start_date = this.due_date.add(minus_one_day);
-            else
-                this.start_date = new_start;
+                new_start = this.due_date.subtract(one_day);
             resize = true;
             break;
         case 'e-resize':
-            var new_due = this.orig_data.due_date.add(movement);
+            new_due = this.orig_data.due_date.add(movement);
             if (new_due <= this.start_date)
-                this.due_date = this.start_date.add(plus_one_day);
-            else
-                this.due_date = new_due;
+                new_due = this.start_date.add(one_day);
             resize = true;
             break;
         case 'move':
-            this.start_date = this.orig_data.start_date.add(movement);
-            this.due_date = this.orig_data.due_date.add(movement);
+            new_start = this.orig_data.start_date.add(movement);
+            new_due = this.orig_data.due_date.add(movement);
+    }
+
+    if (this.min_start_date !== null && new_start < this.min_start_date)
+    {
+        new_start = this.min_start_date;
+        if (!resize)
+            new_due = this.min_due_date;
+    }
+    if (this.max_due_date !== null && new_due > this.max_due_date)
+    {
+        new_due = this.max_due_date;
+        if (!resize)
+            new_start = this.max_start_date;
     }
 
     if (resize)
     {
         // When resizing, the critical path analysis is unreliable so we need to
-        // do it over after each time
-        this.calculateLimits(0, new Date());
+        // do it again after each adjustment
+        this.calculateLimits(0);
     }
 
-    this.checkConsistency(resize);
+    // Perform the actual move
+    this.move(0, new_start, new_due);
 }
 
 function PlanningIssue_dragEnd()
@@ -1475,7 +1420,7 @@ function PlanningIssueRelation(data)
     this.to = data['to'];
     this.type = data['type'];
     this.id = data['id'];
-    this.delay = data['delay'] ? data['delay'] : null;
+    this.delay = data['delay'] ? data['delay'] : 0;
 
     this.element = null;
     this.chart = null;
