@@ -62,7 +62,15 @@ function showTooltip(issue)
     if (d.length)
     {
         if (d.data('issue_id') == issue.id)
+        {
+            var to = d.data('timeout');
+            if (to)
+            {
+                d.data('timeout', null);
+                clearTimeout(to);
+            }
             return;
+        }
         d.remove();
     }
 
@@ -115,20 +123,24 @@ function showTooltip(issue)
     $('body').append(d);
 
     // Add hover handler
-    d.hover(function () {
-        jQuery(this).show();
+    d.on("mousemove", function () {
+        var tt = jQuery(this);
+        tt.show();
         var to = jQuery(this).data('timeout');
         if (to)
         {
             clearTimeout(to);
-            jQuery(this).data('timeout', null);
+            tt.data('timeout', null);
         }
-    }, function () {
+    }).on("mouseleave", function () {
         var tt = jQuery(this);
-        var to = setTimeout(function () {
-            tt.fadeOut(function() {jQuery(this).remove()});
-        }, 1000);
-        tt.data('timeout', to);
+        if (!tt.data('timeout'))
+        {
+            var to = setTimeout(function () {
+                tt.fadeOut(function() {jQuery(this).remove()});
+            }, 1000);
+            tt.data('timeout', to);
+        }
     });
 }
 
@@ -156,7 +168,7 @@ function PlanningChart(options)
         issue_border_radius: 2,
         issue_resize_border: 3,
         parent_link_stroke_color: '#66f',
-        relation_stroke_color: '#f00',
+        relation_stroke_color: {'precedes': '#55f', 'blocks': '#f00'},
         date_format: 'd/m/Y',
         project: ''
     };
@@ -278,15 +290,35 @@ PlanningChart.prototype.setViewBox = function(x, y, w, h)
     this.viewbox.y = y = clamp(y, this.geometry_limits.y);
     this.viewbox.w = w;
     this.viewbox.h = h;
-    this.paper.setViewBox(x, y, w, h);
+
+    this.paper.setViewBox(this.viewbox.x, this.viewbox.y, this.viewbox.w, this.viewbox.h);
 
     // Update header
-    var start_day = Math.round(x / this.dayWidth()) - 5;
-    var end_day = Math.round((x + w) / this.dayWidth()) + 5;
+    var start_day = Math.round(x / this.dayWidth());
+    var end_day = Math.round((x + w) / this.dayWidth());
     var start_date = this.base_date.add(DateInterval.createDays(start_day));
     var end_date = this.base_date.add(DateInterval.createDays(end_day));
 
     this.drawHeader(start_date, end_date);
+
+    // Update issues
+    for (var k in this.issues)
+    {
+        if (k == "length")
+            continue;
+        if (this.issues[k].due_date >= start_date && this.issues[k].start_date < end_date)
+        {
+            if (!this.issues[k].element)
+            {
+                this.issues[k].update();
+                this.issues[k].updateRelations();
+            }
+        }
+        else if (this.issues[k].element)
+        {
+            this.issues[k].update();
+        }
+    }
 }
 
 PlanningChart.prototype.createRelation = function(type)
@@ -370,21 +402,13 @@ PlanningChart.prototype.removeIssue = function(id)
 PlanningChart.prototype.addRelation = function(relation)
 {
     if (this.relations[relation.id])
-    {
-        console.log('Relation ' + relation.id + ' is already in the chart. Skipping');
         return;
-    }
 
     if (!this.issues[relation.from])
-    {
-        console.log('Issue ' + relation.from + ' is not added to the chart. Skipping relation');
         return;
-    }
+
     if (!this.issues[relation.to])
-    {
-        console.log('Issue ' + relation.to + ' is not added to the chart. Skipping relation');
         return;
-    }
 
     relation.setChart(this, this.relations.length++);
     this.relations[relation.id] = relation;
@@ -427,14 +451,15 @@ PlanningChart.prototype.addBackground = function ()
     var chart = this;
 
     this.bg.drag(function (dx, dy) {
-        var day_factor = Math.max(1, Math.pow(2, (-rm_chart.options.zoom_level) + 1));
-        var new_x = Math.round((chart.viewbox.sx - dx) / (chart.dayWidth() * 4)) * (chart.dayWidth() * day_factor);
-        var new_y = Math.round((chart.viewbox.sy - dy) / (chart.options.issue_height)) * (chart.options.issue_height * 1);
+        var w = chart.dayWidth();
+        var h = chart.options.issue_height;
+        var nDays = Math.round(dx / -w);
+        var nIssues = Math.round(dy / -h);
 
+        var new_x = chart.viewbox.sx + nDays * w;
+        var new_y = chart.viewbox.sy + nIssues * h;
         if (new_x != chart.viewbox.x || new_y != chart.viewbox.y)
-        {
             chart.setViewBox(new_x, new_y, chart.viewbox.w, chart.viewbox.h);
-        }
     }, function () {
         chart.viewbox.sx = chart.viewbox.x;
         chart.viewbox.sy = chart.viewbox.y;
@@ -445,7 +470,7 @@ PlanningChart.prototype.reset = function()
 {
     this.paper.clear();
     this.header = null;
-    this.elements = {'issues': this.paper.set(), 'relations': this.paper.set(), 'issue_texts': this.paper.set()};
+    this.elements = {'issues': this.paper.set(), 'relations': this.paper.set(), 'issue_texts': this.paper.set(), 'parent_links': this.paper.set()};
     this.addBackground();
     this.drawHeader();
     this.issues = {'length': 0};
@@ -469,8 +494,7 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
 
     var nDays = end_date ? end_date.subtract(start_date).days() : Math.round(1.5 * this.viewbox.w / dw);
     var startDay = start_date ? start_date.subtract(base).days() : Math.round(-0.75 * this.viewbox.w / dw);
-    while (startDay % 4 != 0)
-        startDay -= 1;
+    startDay -= startDay % 4;
     var endDay = startDay + nDays;
 
     for (var w = startDay; w <= endDay; w += 2)
@@ -642,7 +666,7 @@ PlanningChart.prototype.saveDirty = function()
         delete this.dirty[id].critical_path_determined;
     }
     var chart = this;
-    $.post('/pla/projects/' + this.options.project + '/plan', store, function (response) {
+    $.post('/projects/' + this.options.project + '/plan', store, function (response) {
         for (var issue_id in response)
         {
             var issue = chart.issues[issue_id];
@@ -757,20 +781,23 @@ PlanningIssue.prototype.backup = function()
     this.chart.markDirty(this);
 };
 
-PlanningIssue.prototype.move = function(d, arg1, arg2)
+PlanningIssue.prototype.move = function(arg1, arg2)
 {
-    if (d > 10)
-    {
-        console.log('too much depth');
+    if (!this.chart.move_time)
+        this.chart.move_time = new Date();
+
+    // This issue has already moved in this move chain, so do not move it again
+    if (this.move_time && this.move_time.getTime() == this.chart.move_time.getTime())
         return;
-    }
+
+    // Store the move time to avoid moving this issue again
+    this.move_time = this.chart.move_time;
+
     if (arg1 instanceof DateInterval && !arg2)
     {
         // Nothing to do
         if (arg1.ms == 0)
             return;
-
-        console.log("[" + d + "] Moving issue " + this.id + " from " + this.chart.formatDate(this.start_date) + "-" + this.chart.formatDate(this.due_date) + " by " + arg1.days() + " days");
 
         this.start_date = this.start_date.add(arg1);
         this.due_date = this.due_date.add(arg1);
@@ -783,17 +810,11 @@ PlanningIssue.prototype.move = function(d, arg1, arg2)
         if (this.start_date.getTime() == arg1.getTime() && this.due_date.getTime() == arg2.getTime())
             return;
 
-        console.log("[" + d + "] Moving issue " + this.id + " from " + this.chart.formatDate(this.start_date) + "-" + this.chart.formatDate(this.due_date) + " to " + this.chart.formatDate(arg1) + "-" + this.chart.formatDate(arg2));
-
         this.start_date = arg1;
         this.due_date = arg2;
     }
     else
-    {
-    console.log(arg1);
-    console.log(arg2);
-        throw "Invalid arguments";
-    }
+        throw "Invalid arguments: arg1: " + arg1 + ", arg2: " + arg2;
 
     // Make sure the element is marked dirty
     this.backup();
@@ -809,15 +830,13 @@ PlanningIssue.prototype.move = function(d, arg1, arg2)
                 if (r.toIssue.due_date < this.due_date)
                 {
                     var delay = this.due_date.subtract(r.toIssue.due_date);
-                    console.log("Updating issue " + r.toIssue.id + " that is blocked by issue " + r.fromIssue.id);
-                    r.toIssue.move(d + 1, delay);
+                    r.toIssue.move(delay);
                 }
                 break;
             case "precedes":
                 var target = this.due_date.add(DateInterval.createDays(r.delay + 1));
                 var delay = target.subtract(r.toIssue.start_date);
-                console.log("OUT: Updating issue " + r.toIssue.id + " that is preceded by issue " + r.fromIssue.id + " (" + r.delay + " days)");
-                r.toIssue.move(d + 1, delay);
+                r.toIssue.move(delay);
                 break;
         }
         r.draw();
@@ -832,25 +851,37 @@ PlanningIssue.prototype.move = function(d, arg1, arg2)
                 if (this.due_date < r.fromIssue.due_date)
                 {
                     var delay = this.due_date.subtract(r.fromIssue.due_date);
-                    r.fromIssue.move(d + 1, delay);
+                    r.fromIssue.move(delay);
                 }
                 break;
             case "precedes":
                 var target = this.start_date.subtract(DateInterval.createDays(r.delay + 1));
                 var delay = target.subtract(r.fromIssue.due_date);
-                r.fromIssue.move(d + 1, delay);
+                r.fromIssue.move(delay);
                 break;
         }
         r.draw();
     }
 
     // Check parent relations
-    this.checkParents(d);
+    this.checkParents();
+
+    // If parent was moved, children should move by the same amount
+    if (arg1 instanceof DateInterval)
+        for (var ch in this.children)
+            this.children[ch].move(arg1);
+
 }
 
 PlanningIssue.prototype.calculateLimits = function(direction, ctime)
 {
-    if (this.critical_path_time && this.critical_path_time >= ctime)
+    var start_element = false;
+    if (!ctime)
+    {
+        ctime = new Date();
+        start_element = true;
+    }
+    else if (this.critical_path_time && this.critical_path_time >= ctime)
         return;
 
     this.critical_path_time = ctime;
@@ -1001,9 +1032,20 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
         // If moving the endpoint is not allowed, check
         // if this is an endpoint and update accordingly
         if (!this.min_start_date)
-            this.min_start_date = this.start_date;
+        {
+            // If this issue has a parent, this issue may at least move to the beginning of it's parent
+            if (this.parent_issue && this.parent_issue.start_date)
+                this.min_start_date = this.parent_issue.start_date;
+            else
+                this.min_start_date = this.start_date;
+        }
         if (!this.max_due_date)
-            this.max_due_date = this.due_date;
+        {
+            if (this.parent_issue && this.parent_issue.due_date)
+                this.max_due_date = this.parent_issue.due_date;
+            else
+                this.max_due_date = this.due_date;
+        }
     }
 
     if (this.min_start_date)
@@ -1011,7 +1053,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     if (this.max_due_date)
         this.max_start_date = this.max_due_date.subtract(duration);
 
-    if (direction == 0)
+    if (start_element)
     {
         if (this.critical_lines)
             this.critical_lines.remove();
@@ -1037,7 +1079,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     }
 };
 
-PlanningIssue.prototype.checkParents = function (d)
+PlanningIssue.prototype.checkParents = function ()
 {
     // Check parents to stretch along
     var cur_child = this;
@@ -1055,8 +1097,7 @@ PlanningIssue.prototype.checkParents = function (d)
         }
 
         // Update the parent to the new correct size
-        console.log("[" + this.id + "] Moving parent of " + cur_child.id + ": " + cur_parent.id);
-        cur_parent.move(d + 1, cur_start_date, cur_due_date);
+        cur_parent.move(cur_start_date, cur_due_date);
 
         // Traverse the tree to the root
         cur_child = cur_parent;
@@ -1064,22 +1105,43 @@ PlanningIssue.prototype.checkParents = function (d)
     }
 }
 
+PlanningChart.prototype.eventToCanvas = function(e)
+{
+    var s = this.getScale();
+    if (!e.offsetX)
+    {
+        var x = Math.round((e.layerX / s[0]) + this.viewbox.x);
+        var y = Math.round((e.layerY / s[1]) + this.viewbox.y);
+    }
+    else
+    {
+        var x = Math.round((e.offsetX / s[0]) + this.viewbox.x);
+        var y = Math.round((e.offsetY / s[1]) + this.viewbox.y);
+    }
+    return [x, y];
+}
+
 function PlanningIssue_closeTooltip(e)
 {
     var tt = jQuery('.planning-tooltip');
-    var to = setTimeout(function () {
-        tt.fadeOut(function () {jQuery(this).remove();});
-    }, 1000);
-    tt.data('timeout', to);
+    if (!tt.data('timeout'))
+    {
+        var to = setTimeout(function () {
+            tt.fadeOut(function () {jQuery(this).remove();});
+        }, 1000);
+        tt.data('timeout', to);
+    }
 }
 
 function PlanningIssue_changeCursor(e, mouseX, mouseY)
 {
-    if (this.dragging)
+    if (this.dragging || this.chart.dragging)
         return;
 
     if (!this.leaf)
     {
+        this.element.attr('cursor', 'move');
+        this.text.attr('cursor', 'move');
         showTooltip(this);
         return;
     }
@@ -1111,20 +1173,23 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
         return;
     }
 
-    var x = e.offsetX ? e.offsetX : e.layerX;
-    var y = e.offsetY ? e.offsetY : e.layerY;
-
-    var conv = this.chart.clientToCanvas(x, y)
-    x = conv[0];
-    y = conv[1];
+    var pos = this.chart.eventToCanvas(e);
+    var x = pos[0];
+    var y = pos[1];
 
     var relX = x - this.element.attr('x');
     var relY = y - this.element.attr('y');
 
     if (relX <= this.chart.options.issue_resize_border)
+    {
         this.element.attr('cursor', 'w-resize');
+        this.text.attr('cursor', 'w-resize');
+    }
     else if (relX >= this.element.attr('width') - this.chart.options.issue_resize_border)
+    {
         this.element.attr('cursor', 'e-resize');
+        this.text.attr('cursor', 'e-resize');
+    }
     else
     {
         this.element.attr('cursor', 'move');
@@ -1205,15 +1270,12 @@ function PlanningIssue_dragStart()
     if (this.chart.relating || this.chart.deleting)
         return;
 
-    if (!this.leaf)
-        return;
-
     jQuery('.planning-tooltip').remove();
     this.dragging = true;
+    this.chart.dragging = true;
     this.backup();
     this.getRelations();
-    var ctime = new Date(); 
-    this.calculateLimits(0, ctime);
+    this.calculateLimits(0);
 }
 
 function PlanningIssue_dragMove(dx, dy, x, y)
@@ -1300,10 +1362,21 @@ function PlanningIssue_dragMove(dx, dy, x, y)
         // When resizing, the critical path analysis is unreliable so we need to
         // do it again after each adjustment
         this.calculateLimits(0);
+
+        // Perform the actual resize
+        this.move(new_start, new_due);
+    }
+    else
+    {
+        // Calculate the actual movement
+        movement = new_start.subtract(this.start_date);
+
+        // Perform the actual move
+        this.move(movement);
     }
 
-    // Perform the actual move
-    this.move(0, new_start, new_due);
+    // Delete movement tracker
+    delete this.chart.move_time;
 }
 
 function PlanningIssue_dragEnd()
@@ -1317,6 +1390,7 @@ function PlanningIssue_dragEnd()
     $('.date-tooltip').remove();
 
     this.dragging = false;
+    this.chart.dragging = false;
     this.chart.saveDirty();
     if (this.critical_lines)
     {
@@ -1324,6 +1398,19 @@ function PlanningIssue_dragEnd()
         delete this.critical_lines;
     }
 }
+
+PlanningIssue.prototype.updateRelations = function()
+{
+    for (var t in this.relations)
+    {
+        for (var k in this.relations[t])
+        {
+            if (k == "length")
+                continue;
+            this.relations[t][k].draw();
+        }
+    }
+};
 
 /**
  * Draw the issue on the chart
@@ -1335,6 +1422,38 @@ PlanningIssue.prototype.draw = function()
     // If no geometry has been calcalated, do so and return to avoid recursion
     if (!this.geometry)
         return this.update();
+
+    var sx = this.geometry.x;
+    var ex = this.geometry.x + this.geometry.width;
+    var sy = this.geometry.y;
+    var ey = this.geometry.y + this.geometry.height;
+    if (
+        (sx > this.chart.viewbox.x + this.chart.viewbox.w) ||
+        (ex < this.chart.viewbox.x) ||
+        (sy > this.chart.viewbox.y + this.chart.viewbox.h) ||
+        (ey < this.chart.viewbox.y)
+    )
+    {
+        if (this.element)
+        {
+            this.chart.elements.issues.exclude(this.element);
+            this.element.remove();
+            delete this.element;
+        }
+        if (this.text)
+        {
+            this.chart.elements.issue_texts.exclude(this.text);
+            this.text.remove();
+            delete this.text;
+        }
+        if (this.parent_link)
+        {
+            this.chart.elements.parent_links.exclude(this.parent_link);
+            this.parent_link.remove();
+            delete this.parent_link;
+        }
+        return;
+    }
 
     if (!this.element)
     {
@@ -1418,14 +1537,18 @@ PlanningIssue.prototype.draw = function()
             }
 
             var path = "M" + x + "," + start_y + "L" + x + "," + end_y;
-            if (this.parent_link)
-                this.parent_link.remove();
-            this.parent_link = this.chart.paper.path(path);
-            this.parent_link.attr({
-                'stroke-width': 1,
-                'stroke': this.chart.options.parent_link_stroke_color,
-                'stroke-dasharray': '--'
-            });
+            if (!this.parent_link)
+            {
+                this.parent_link = this.chart.paper.path(path);
+                this.parent_link.attr({
+                    'stroke-width': 1,
+                    'stroke': this.chart.options.parent_link_stroke_color,
+                    'stroke-dasharray': '--'
+                });
+                this.chart.elements.parent_links.push(this.parent_link);
+            }
+            else
+                this.parent_link.attr('path', path);
         }
     }
 
@@ -1499,6 +1622,21 @@ PlanningIssueRelation.prototype.draw = function()
     var from_geo = this.chart.issues[this.from].geometry;
     var to_geo = this.chart.issues[this.to].geometry; 
 
+    if (
+        (from_geo.x < this.chart.viewbox.x && to_geo.x < this.chart.viewbox.x) ||
+        (from_geo.x > (this.chart.viewbox.x + this.chart.viewbox.w) && to_geo.x > (this.chart.viewbox.x + this.chart.viewbox.w)) ||
+        (from_geo.y < this.chart.viewbox.y && to_geo.y < this.chart.viewbox.y) ||
+        (from_geo.y > (this.chart.viewbox.y + this.chart.viewbox.h) && to_geo.y > (this.chart.viewbox.y + this.chart.viewbox.y))
+    )
+    {
+        if (this.element)
+        {
+            this.chart.elements.relations.exclude(this.element);
+            this.element.remove();
+            delete this.element;
+        }
+    }
+
     // Storage for path points
     var points = [];
     
@@ -1560,8 +1698,9 @@ PlanningIssueRelation.prototype.draw = function()
     if (!this.element)
     {
         this.element = this.chart.paper.path(path);
+        var stroke = this.chart.options.relation_stroke_color[this.type] ? this.chart.options.relation_stroke_color[this.type] : "#f00";
         this.element.attr({
-            'stroke': this.chart.options.relation_stroke_color,
+            'stroke': stroke,
             'arrow-end': this.type == "blocks" ? 'diamond-wide-long' : 'classic-wide-long',
             'stroke-width': 2
         });
