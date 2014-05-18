@@ -43,6 +43,22 @@ Date.prototype.add = function (interval) { var r = new Date(); r.setTime(this.ge
 Date.prototype.toISODateString = function () { return this.getFullYear() + "-" + (this.getMonth() + 1) + "-" + this.getDate(); };
 Date.prototype.resetTime = function () { this.setUTCHours(0); this.setUTCMinutes(0); this.setUTCSeconds(0); };
 
+var redmine_planning_translations = {
+    parent_task: 'Parent task',
+    start_date: 'Start date',
+    due_date: 'Due date',
+    description: 'Description',
+    leaf_task: 'Leaf task',
+    yes: 'yes',
+    no: 'no',
+    project: 'Project'
+}
+
+function t(str)
+{
+    return redmine_planning_translations[str] ? redmine_planning_translations[str] : "N/A";
+}
+
 function getToday()
 {
     var today = new Date();
@@ -111,12 +127,12 @@ function showTooltip(issue)
     d.html(
         '<table>' +
         '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + issue.tracker + ' <a href="/issues/' + issue.id + '" target="_blank">#' + issue.id + '</a>: ' + issue.name + '</th></tr>' +
-        '<tr><th>Project:</th><td><a href="/projects/' + issue.project_identifier + '" target="_blank">' + issue.project + '</a></td></tr>' + 
-        '<tr><th>Parent task:</th><td>' + parent_issue + '</td></tr>' +
-        '<tr><th>Start date:</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
-        '<tr><th>Due date:</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
-        '<tr><th>Description:</th><td>' + issue.description + '</td></tr>' + 
-        '<tr><th>Leaf task:</th><td>' + (issue.leaf ? "yes" : "no") + '</td></tr>'
+        '<tr><th>' + t('project') + ':</th><td><a href="/projects/' + issue.project_identifier + '" target="_blank">' + issue.project + '</a></td></tr>' + 
+        '<tr><th>' + t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
+        '<tr><th>' + t('start_date') + ':</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
+        '<tr><th>' + t('due_date') + ':</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
+        '<tr><th>' + t('descrption') + ':</th><td>' + issue.description + '</td></tr>' + 
+        '<tr><th>' + t('leaf_task') + ':</th><td>' + (issue.leaf ? t('yes') : t('no')) + '</td></tr>'
     );
 
     $('body').append(d);

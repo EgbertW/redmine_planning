@@ -48,21 +48,20 @@
                        :class => 'icon icon-save' %>
 <% end %>
 </p>
-<p>
-Center on 
+<div id="redmine_planning_panel_1" style="width: 100%; text-align: center;">
+<%= l(:planning_center_on) %> 
 <%= select_day(@gantt.date_from, :prefix => "planning_focus_day", :discard_type => true) %>
 <%= select_month(@gantt.month_from, :prefix => "planning_focus_month", :discard_type => true) %>
 <%= select_year(@gantt.year_from, :prefix => "planning_focus_year", :discard_type => true) %>
-
-</p>
+</div>
 <% end %>
 
-<div id="redmine_planning_panel" style="width: 100%; text-align: center;">
-    <button id="redmine_planning_back_button">&laquo; Back 16 days</button>
-    <button id="redmine_planning_block_button">Add blocking</button>
-    <button id="redmine_planning_cancel_button">X</button>
-    <button id="redmine_planning_precedes_button">Add precedes</button>
-    <button id="redmine_planning_forward_button">Forward 16 days &raquo;</button>
+<div id="redmine_planning_panel_2" style="width: 100%; text-align: center;">
+    <button id="redmine_planning_back_button">&laquo; <%= l(:planning_back_16_days) %></button>
+    <button id="redmine_planning_block_button"><%= l(:planning_add_blocking)%></button>
+    <button id="redmine_planning_cancel_button"><%= l(:planning_delete) %></button>
+    <button id="redmine_planning_precedes_button"><%= l(:planning_add_precedes) %></button>
+    <button id="redmine_planning_forward_button"><%= l(:planning_forward_16_days) %> &raquo;</button>
 </div>
 <div id="redmine_planning_chart">
 </div>
