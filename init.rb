@@ -30,10 +30,10 @@ Redmine::Plugin.register :redmine_planning do
   version     '0.5.0'
 
   if respond_to?(:url)
-    url 'http://www.assistobot.com/redmine_planning'
+    url 'https://github.com/MadEgg/redmine_planning'
   end
   if respond_to?(:author_url)
-    author_url 'http://assistobot.com'
+    author_url 'https://github.com/MadEgg/'
   end
 
   project_module :issue_tracking do
