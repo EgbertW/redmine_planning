@@ -72,10 +72,20 @@ Center on
     <%= javascript_include_tag 'raphael' %>
     <%= javascript_include_tag 'jquery-mousewheel', :plugin => 'redmine_planning' %>
     <% 
-    plugin_settings = Setting.plugin_redmine_planning
+    options = {}
+    options[:locale] = User.current.language unless User.current.language.blank?
+
+    # Provide project and date format to Javascript
+    plugin_settings = Setting.plugin_redmine_planning.clone
     plugin_settings[:project] = @project[:identifier]
+    plugin_settings[:date_format] = Setting[:date_format]
+    plugin_settings[:date_format] = ::I18n.t('date.formats.default', options) unless not plugin_settings[:date_format].blank?
+
+    # Add month abbreviations and names
+    plugin_settings[:month_names] = ::I18n.t('date.month_names', options)
+    plugin_settings[:abbr_month_names] = ::I18n.t('date.abbr_month_names', options)
     %>
-    <%= javascript_tag "var redmine_planning_settings = " + JSON.generate(Setting.plugin_redmine_planning, quirks_mode: true) %>
+    <%= javascript_tag "var redmine_planning_settings = " + JSON.generate(plugin_settings, quirks_mode: true) %>
     <%= javascript_include_tag 'planning', :plugin => 'redmine_planning' %>
 <% end %>
 

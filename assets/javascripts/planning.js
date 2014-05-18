@@ -157,7 +157,9 @@ function PlanningChart(options)
         margin: {x: 10, y: 20},
         spacing: {x: 10, y: 10},
         issue_resize_border: 3,
-        date_format: 'd/m/Y',
+        date_format: '%d/%m/%Y',
+        month_names: [null, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        abbr_month_names: [null, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         project: '',
         tracker: {
             'Default': {
@@ -326,6 +328,12 @@ function PlanningChart(options)
     });
 }
 
+PlanningChart.prototype.setMonthNames = function(names, abbreviations)
+{
+    this.options['month_names'] = jQuery.extend({}, names);
+    this.options['abbr_month_names'] = jQuery.extend({}, abbreviations);
+}
+
 PlanningChart.prototype.getTrackerAttrib = function(tracker, attrib)
 {
     if (this.options.tracker[tracker] && this.options.tracker[tracker][attrib])
@@ -460,41 +468,18 @@ PlanningChart.prototype.formatDate = function(date)
     var m = date.getMonth() + 1;
     var y = date.getYear();
     var yy = date.getFullYear();
-    switch (this.options.date_format)
-    {
-        case "d-m-Y":
-            return d + "-" + m + "-" + yy;
-        case "d-m-y":
-            return d + "-" + m + "-" + y;
-        case "d-m":
-            return d + "-" + m;
-        case "d/m/Y":
-            return d + "/" + m + "/" + yy;
-        case "d/m/y":
-            return d + "/" + m + "/" + y;
-        case "d/m":
-            return d + "/" + m;
-        case "m-d-Y":
-            return m + "-" + d + "-" + yy;
-        case "m-d-y":
-            return m + "-" + d + "-" + y;
-        case "m-d":
-            return m + "-" + d;
-        case "m/d/Y":
-            return m + "/" + d + "/" + yy;
-        case "m/d/y":
-            return m + "/" + d + "/" + y;
-        case "m/d":
-            return m + "/" + d;
-        case "y/m/d":
-            return y + "/" + m + "/" + d;
-        case "y-m-d":
-            return y + "-" + m + "-" + d;
-        case "Y/m/d":
-            return yy + "/" + m + "/" + d;
-        case "Y-m-d":
-            return yy + "-" + m + "-" + d;
-    }
+    var b = this.options.abbr_month_names[m];
+    var B = this.options.month_names[m];
+
+    var fmt = this.options.date_format + "";
+    fmt = fmt
+        .replace("%d", d)
+        .replace("%m", m)
+        .replace("%y", y)
+        .replace("%Y", yy)
+        .replace("%b", b)
+        .replace("%B", B);
+    return fmt;
 }
 
 
