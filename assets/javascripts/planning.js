@@ -156,21 +156,54 @@ function PlanningChart(options)
         zoom_factor: 1.5,
         margin: [10, 20],
         spacing: [10, 10],
-        issue_fill_color: '#cccccc',
-        issue_tracker_fill_color: {
-            'Task': '#ccc',
-            'Feature': '#f99'
-        },
-        issue_leaf_stroke_color: '#800000',
-        issue_nonleaf_stroke_color: '#008000',
-        issue_leaf_stroke_width: 2,
-        issue_nonleaf_stroke_width: 3,
-        issue_border_radius: 2,
         issue_resize_border: 3,
-        parent_link_stroke_color: '#66f',
-        relation_stroke_color: {'precedes': '#55f', 'blocks': '#f00'},
         date_format: 'd/m/Y',
-        project: ''
+        project: '',
+        tracker: {
+            fill_color: {
+                'Default': '#ccc',
+                'Task': '#ccc',
+                'Feature': '#f99'
+            },
+            text_color: {
+                'Default': '#000'
+            }
+        },
+        type: {
+            leaf: {
+                stroke:     '#800',
+                width:      2,
+                radius:     2
+            },
+            branch: {
+                stroke:     '#080',
+                width:      3,
+                radius:     2
+            },
+            root: {
+                stroke:     '#080',
+                width:      3,
+                radius:     2
+            }
+        }
+        relation: {
+           stroke: {
+                'precedes':   '#55f',
+                'blocks':     '#f00',
+                'relates':    '#bbf',
+                'copied-to':  '#bfb',
+                'duplicates': '#fbb',
+                'parent':     '#66f'
+           },
+           style: {
+                'precedes':   '->',
+                'blocks':     '-*',
+                'relates':    '<-->',
+                'copied-to':  '*--*',
+                'duplicates': '<--..>',
+                'parent':     '--'
+           }
+        }
     };
 
     if (!options)
@@ -255,6 +288,55 @@ function PlanningChart(options)
         }
     });
 }
+
+
+PlanningChart.prototype.getTrackerAttrib = function(tracker, attrib)
+{
+    if (this.chart.options.tracker[attrib][tracker])
+        return this.chart.options.tracker[attrib][tracker];
+    return this.chart.options.tracker[attrib]['Default'];
+};
+
+PlanningChart.prototype.getRelationAttributes = function(relation_type)
+{
+    var attributes = {
+        'stroke-width': 1,
+        'stroke': this.chart.options.relations['stroke'][relation_type],
+    });
+
+    var style = this.chart.options.relations['style'][relation_type];
+    var start_arrow = "";
+    var end_arrow = "";
+
+    var ch = style.strpos(0, 1);
+    if (ch == "*" || ch == "<" || ch == ">")
+    {
+        if (ch == "*")
+            attributes['arrow-start "diamond-wide-long";
+        else if (ch == "<")
+            attributes['arrow-start'] = "classic-wide-long";
+        else if (ch == ">")
+            attributes['arrow-start'] = "classic-wide-long";
+        style = style.strpos(1);
+    }
+
+    ch = style.strpos(style.length - 1, 1);
+    if (ch == "*" || ch == "<" || ch == ">")
+    {
+        if (ch == "*")
+            attributes['arrow-end'] = "diamond-wide-long";
+        else if (ch == "<")
+            attributes['arrow-end'] = "classic-wide-long";
+        else if (ch == ">")
+            attributes['arrow-end'] = "classic-wide-long";
+        style = style.strpos(0, style.length - 1);
+    }
+    
+    if (style != "-")
+        attributes['stroke-dasharray'] = style;
+
+    return attributes;
+};
 
 PlanningChart.prototype.setBaseDate = function(date)
 {
@@ -1457,23 +1539,28 @@ PlanningIssue.prototype.draw = function()
 
     if (!this.element)
     {
+        var type;
+        if (!this.parent && this.children.length)
+            type = "root";
+        else if (this.parent && this.children.length)
+            type == "branch";
+        else
+            type = "leaf";
+
+        var fill = this.chart.getTrackerAttrib('fill_color', this.tracker);
         this.element = this.chart.paper.rect(
             this.geometry.x,
             this.geometry.y,
             this.geometry.width,
             this.geometry.height,
-            this.chart.options.issue_border_radius
+            this.chart.options.type[type].radius
         );
-        var fill = this.chart.options.issue_fill_color;
-        if (this.chart.options.issue_tracker_fill_color[this.tracker])
-            fill = this.chart.options.issue_tracker_fill_color[this.tracker];
 
         this.element.toFront();
         this.element.attr({
-            'stroke': this.leaf ? this.chart.options.issue_leaf_stroke_color : this.chart.options.issue_nonleaf_stroke_color,
-            'stroke-width': this.leaf ? this.chart.options.issue_leaf_stroke_width : this.chart.options.issue_nonleaf_stroke_width,
+            'stroke': this.chart.options.type[type].stroke,
+            'stroke-width': this.chart.options.type[type].width,
             'fill': fill,
-            'r': this.chart.options.issue_border_radius
         });
 
         this.element.mousemove(PlanningIssue_changeCursor, this);
@@ -1490,6 +1577,7 @@ PlanningIssue.prototype.draw = function()
 
     if (!this.text)
     {
+        var text_color = this.chart.getTrackerAttrib('text_color', this.tracker);
         var n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
         var max_length = this.geometry['width'] / 8;
         if (n.length > max_length)
@@ -1501,7 +1589,8 @@ PlanningIssue.prototype.draw = function()
         )
         .attr({
             'font-size': 9,
-            'cursor': 'move'
+            'cursor': 'move',
+            'color': text_color
         });
         this.text.mousemove(PlanningIssue_changeCursor, this);
         this.text.mouseout(PlanningIssue_closeTooltip, this);
@@ -1540,11 +1629,7 @@ PlanningIssue.prototype.draw = function()
             if (!this.parent_link)
             {
                 this.parent_link = this.chart.paper.path(path);
-                this.parent_link.attr({
-                    'stroke-width': 1,
-                    'stroke': this.chart.options.parent_link_stroke_color,
-                    'stroke-dasharray': '--'
-                });
+                this.parent_link.attr(this.chart.getRelationAttributes('parent'));
                 this.chart.elements.parent_links.push(this.parent_link);
             }
             else
@@ -1699,11 +1784,7 @@ PlanningIssueRelation.prototype.draw = function()
     {
         this.element = this.chart.paper.path(path);
         var stroke = this.chart.options.relation_stroke_color[this.type] ? this.chart.options.relation_stroke_color[this.type] : "#f00";
-        this.element.attr({
-            'stroke': stroke,
-            'arrow-end': this.type == "blocks" ? 'diamond-wide-long' : 'classic-wide-long',
-            'stroke-width': 2
-        });
+        this.element.attr(this.chart.getRelationAttributes(this.type));
         this.element.click(PlanningIssueRelation_click, this);
 
         this.chart.elements.relations.push(this.element);

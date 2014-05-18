@@ -41,5 +41,68 @@ Redmine::Plugin.register :redmine_planning do
     permission :plan_issues, :planning => [:show, :issues, :save]
   end
 
+  settings :default => {
+        issue_height:               20,
+        min_zoom_level:             -2,
+        max_zoom_level:             3,
+        zoom_factor:                1.5,
+        margin:                     [10, 20],
+        spacing:                    [10, 10],
+        issue_resize_border:        3,
+        date_format:                'd/m/Y',
+        tracker: {
+            fill_color: {
+                'Default' =>        '#ccc',
+                'Task' =>           '#ccc',
+                'Feature' =>        '#f99',
+                'Support' =>        '#ccc',
+                'Bug' =>            '#ccc'
+            },
+            text_color: {
+                'Default' =>        '#000',
+                'Task' =>           '#000',
+                'Feature' =>        '#000',
+                'Support' =>        '#000',
+                'Bug' =>            '#000'
+            }
+        },
+        type: {
+            leaf: {
+                stroke:             '#800',
+                width:              2,
+                radius:             2
+            },
+            branch: {
+                stroke:             '#080',
+                width:              3,
+                radius:             2
+            },
+            root: {
+                stroke:             '#080',
+                width:              3,
+                radius:             2
+            }
+        },
+        relation: {
+            stroke: {
+                precedes:           '#55f',
+                blocks:             '#f00',
+                relates:            '#bbf',
+                copied_to:          '#bfb',
+                duplicates:         '#fbb',
+                parent:             '#66f'
+            },
+            style: {
+                precedes:           '->',
+                blocks:             '-*',
+                relates:            '<-->',
+                copied_to:          '*--*',
+                duplicates:         '<--..>',
+                parent:             '--'
+            }
+        },
+    },
+    :partial => 'planning/planning_settings';
+
   menu :project_menu, :redmine_planning, { :controller => :planning, :action => :show }, :caption => 'Plan', :after => :gantt, :param => :project_id
 end

@@ -1,0 +1,136 @@
+<% logger.error(@settings) %>
+<fieldset>
+  <legend>Tracker attributes</legend>
+  <dl>
+<% Tracker.find(:all).each do |tracker| %>
+  <dt><strong><%= tracker[:name] %></strong></dt>
+  <dd>
+    <p><%= content_tag(:label, "Fill color") %>
+        <%= text_field_tag("settings[tracker][fill_color][" + tracker[:name] + "]", @settings[:tracker][:fill_color][tracker[:name]]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Text color") %>
+        <%= text_field_tag("settings[tracker][text_color][" + tracker[:name] + "]", @settings[:tracker][:text_color][tracker[:name]]) %>
+    </p>
+  </dd>
+<% end %>
+  </dl>
+</fieldset>
+<fieldset>
+  <legend>Issue type attributes</legend>
+  <dl>
+<% [:root, :branch, :leaf].each do |type| %>
+  <% logger.error(type) %>
+  <% logger.error(settings[:type][type]) %>
+  <dt><strong><%= type.to_s.titleize %></strong></dt>
+  <dd>
+    <p>
+        <%= content_tag(:label, "Border width") %>
+        <%= text_field_tag("settings[type][" + type.to_s + "][width]", @settings[:type][type][:width]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Border color") %>
+        <%= text_field_tag("settings[type][" + type.to_s + "][stroke]", @settings[:type][type][:stroke]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Border radius") %>
+        <%= text_field_tag("settings[type][" + type.to_s + "][radius]", @settings[:type][type][:radius]) %>
+    </p>
+  </dd>
+<% end %>
+  </dl>
+</fieldset>
+<%
+styles = [
+    "<->",
+    "->",
+    "<-",
+    "-*",
+    "*-",
+    "*-*",
+
+    "<.>",
+    ".>",
+    "<.",
+    ".*",
+    "*.",
+    "*.*",
+
+    "<-.>",
+    "-.>",
+    "<-.",
+    "-.*",
+    "*-.",
+    "*-.*",
+
+    "<-..>",
+    "-..>",
+    "<-..",
+    "-..*",
+    "*-..",
+    "*-..*",
+
+    "<. >",
+    ". >",
+    "<. ",
+    ". *",
+    "*. ",
+    "*. *",
+
+    "<- >",
+    "- >",
+    "<- ",
+    "- *",
+    "*- ",
+    "*- *",
+
+    "<-->",
+    "-->",
+    "<--",
+    "--*",
+    "*--",
+    "*--*",
+
+    "<- .>",
+    "- .>",
+    "<- .",
+    "- .*",
+    "*- .",
+    "*- *>",
+
+    "<--.>",
+    "--.>",
+    "<--.",
+    "--.*",
+    "*--.",
+    "*--.*",
+
+    "<--..>",
+    "--..>",
+    "<--..",
+    "--..*",
+    "*--..",
+    "*--..*"
+]
+
+%>
+<fieldset>
+  <legend>Relation type attributes</legend>
+  <dl>
+<% [:blocks, :precedes, :copied_to, :duplicates, :relates].each do |type| %>
+  <% logger.error(settings[:type]) %>
+  <dt><strong><%= type.to_s.titleize %></strong></dt>
+  <dd>
+    <p>
+        <%= content_tag(:label, "Stroke color") %>
+        <%= text_field_tag("settings[type][stroke][" + type.to_s + "]", @settings[:relation][:stroke][type]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Style") %>
+        <%= select_tag("settings[type][style][" + type.to_s + "]",
+                  options_for_select(styles, settings[:relation][:style][type])) %>
+    </p>
+  </dd>
+<% end %>
+  </dl>
+</fieldset>
