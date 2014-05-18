@@ -71,6 +71,11 @@ Center on
     <%= stylesheet_link_tag 'planning', :plugin => 'redmine_planning' %>
     <%= javascript_include_tag 'raphael' %>
     <%= javascript_include_tag 'jquery-mousewheel', :plugin => 'redmine_planning' %>
+    <% 
+    plugin_settings = Setting.plugin_redmine_planning
+    plugin_settings[:project] = @project[:identifier]
+    %>
+    <%= javascript_tag "var redmine_planning_settings = " + JSON.generate(Setting.plugin_redmine_planning, quirks_mode: true) %>
     <%= javascript_include_tag 'planning', :plugin => 'redmine_planning' %>
 <% end %>
 

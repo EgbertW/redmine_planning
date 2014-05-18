@@ -1,27 +1,73 @@
 <% logger.error(@settings) %>
 <fieldset>
-  <legend>Tracker attributes</legend>
-  <dl>
-<% Tracker.find(:all).each do |tracker| %>
-  <dt><strong><%= tracker[:name] %></strong></dt>
-  <dd>
-    <p><%= content_tag(:label, "Fill color") %>
-        <%= text_field_tag("settings[tracker][fill_color][" + tracker[:name] + "]", @settings[:tracker][:fill_color][tracker[:name]]) %>
+  <legend><strong>Chart settings</strong></legend>
+    <p>
+        <%= content_tag(:label, "Minimum zoom level") %>
+        <%= text_field_tag("settings[min_zoom_level]", @settings[:min_zoom_level]) %>
     </p>
     <p>
+        <%= content_tag(:label, "Maximum zoom level") %>
+        <%= text_field_tag("settings[max_zoom_level]", @settings[:max_zoom_level]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Zoom factor") %>
+        <%= text_field_tag("settings[zoom_factor]", @settings[:zoom_factor]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Height of issues") %>
+        <%= text_field_tag("settings[issue_height]", @settings[:issue_height]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Width of one day") %>
+        <%= text_field_tag("settings[day_width]", @settings[:day_width]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "X-margin") %>
+        <%= text_field_tag("settings[margin][x]", @settings[:margin][:x]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Y-margin") %>
+        <%= text_field_tag("settings[margin][y]", @settings[:margin][:y]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Length of first relation line segment") %>
+        <%= text_field_tag("settings[spacing][x]", @settings[:spacing][:x]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Vertical space between issues") %>
+        <%= text_field_tag("settings[spacing][y]", @settings[:spacing][:y]) %>
+    </p>
+    <p>
+        <%= content_tag(:label, "Size of issue resize border") %>
+        <%= text_field_tag("settings[issue_resize_border]", @settings[:issue_resize_border]) %>
+    </p>
+</fieldset>
+<fieldset>
+  <legend><strong>Tracker attributes</strong></legend>
+  <dl>
+<% d_settings = @settings[:tracker]['Default'] %>
+<% Tracker.find(:all).each do |tracker| %>
+  <% t_settings = @settings[:tracker][tracker[:name]] %>
+  <dt><strong><%= tracker[:name] %></strong></dt>
+  <dd>
+    <p>
+        <% val = t_settings.nil? ? d_settings[:fill_color] : t_settings[:fill_color] %>
+        <%= content_tag(:label, "Fill color") %>
+        <%= text_field_tag("settings[tracker][" + tracker[:name] + "][fill_color]", val) %>
+    </p>
+    <p>
+        <% val = t_settings.nil? ? d_settings[:text_color] : t_settings[:text_color] %>
         <%= content_tag(:label, "Text color") %>
-        <%= text_field_tag("settings[tracker][text_color][" + tracker[:name] + "]", @settings[:tracker][:text_color][tracker[:name]]) %>
+        <%= text_field_tag("settings[tracker][" + tracker[:name] + "][text_color]", val) %>
     </p>
   </dd>
 <% end %>
   </dl>
 </fieldset>
 <fieldset>
-  <legend>Issue type attributes</legend>
+  <legend><strong>Issue type attributes</strong></legend>
   <dl>
 <% [:root, :branch, :leaf].each do |type| %>
-  <% logger.error(type) %>
-  <% logger.error(settings[:type][type]) %>
   <dt><strong><%= type.to_s.titleize %></strong></dt>
   <dd>
     <p>
@@ -43,6 +89,7 @@
 <%
 styles = [
     "<->",
+    "-",
     "->",
     "<-",
     "-*",
@@ -50,6 +97,7 @@ styles = [
     "*-*",
 
     "<.>",
+    ".",
     ".>",
     "<.",
     ".*",
@@ -57,6 +105,7 @@ styles = [
     "*.*",
 
     "<-.>",
+    "-.",
     "-.>",
     "<-.",
     "-.*",
@@ -64,6 +113,7 @@ styles = [
     "*-.*",
 
     "<-..>",
+    "-..",
     "-..>",
     "<-..",
     "-..*",
@@ -71,6 +121,7 @@ styles = [
     "*-..*",
 
     "<. >",
+    ". ",
     ". >",
     "<. ",
     ". *",
@@ -78,6 +129,7 @@ styles = [
     "*. *",
 
     "<- >",
+    "- ",
     "- >",
     "<- ",
     "- *",
@@ -85,6 +137,7 @@ styles = [
     "*- *",
 
     "<-->",
+    "--",
     "-->",
     "<--",
     "--*",
@@ -92,6 +145,7 @@ styles = [
     "*--*",
 
     "<- .>",
+    "- .",
     "- .>",
     "<- .",
     "- .*",
@@ -99,6 +153,7 @@ styles = [
     "*- *>",
 
     "<--.>",
+    "--.",
     "--.>",
     "<--.",
     "--.*",
@@ -106,6 +161,7 @@ styles = [
     "*--.*",
 
     "<--..>",
+    "--..",
     "--..>",
     "<--..",
     "--..*",
@@ -115,20 +171,19 @@ styles = [
 
 %>
 <fieldset>
-  <legend>Relation type attributes</legend>
+  <legend><strong>Relation type attributes</strong></legend>
   <dl>
-<% [:blocks, :precedes, :copied_to, :duplicates, :relates].each do |type| %>
-  <% logger.error(settings[:type]) %>
+<% [:blocks, :precedes, :copied_to, :duplicates, :relates, :parent].each do |type| %>
   <dt><strong><%= type.to_s.titleize %></strong></dt>
   <dd>
     <p>
         <%= content_tag(:label, "Stroke color") %>
-        <%= text_field_tag("settings[type][stroke][" + type.to_s + "]", @settings[:relation][:stroke][type]) %>
+        <%= text_field_tag("settings[relation][" + type.to_s + "][stroke]", @settings[:relation][type][:stroke]) %>
     </p>
     <p>
         <%= content_tag(:label, "Style") %>
-        <%= select_tag("settings[type][style][" + type.to_s + "]",
-                  options_for_select(styles, settings[:relation][:style][type])) %>
+        <%= select_tag("settings[relation][" + type.to_s + "][style]",
+                  options_for_select(styles, settings[:relation][type][:style])) %>
     </p>
   </dd>
 <% end %>

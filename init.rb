@@ -43,27 +43,33 @@ Redmine::Plugin.register :redmine_planning do
 
   settings :default => {
         issue_height:               20,
+        day_width:                  20,
         min_zoom_level:             -2,
         max_zoom_level:             3,
         zoom_factor:                1.5,
-        margin:                     [10, 20],
-        spacing:                    [10, 10],
+        margin:                     {x: 10, y: 20},
+        spacing:                    {x: 10, y: 10},
         issue_resize_border:        3,
-        date_format:                'd/m/Y',
         tracker: {
-            fill_color: {
-                'Default' =>        '#ccc',
-                'Task' =>           '#ccc',
-                'Feature' =>        '#f99',
-                'Support' =>        '#ccc',
-                'Bug' =>            '#ccc'
+            'Default' => {
+                fill_color:     '#ccc',
+                text_color:     '#000'
             },
-            text_color: {
-                'Default' =>        '#000',
-                'Task' =>           '#000',
-                'Feature' =>        '#000',
-                'Support' =>        '#000',
-                'Bug' =>            '#000'
+            'Task' => {
+                fill_color:     '#ccc',
+                text_color:     '#000'
+            },
+            'Feature' => {
+                fill_color:     '#f99',
+                text_color:     '#000'
+            },
+            'Support' => {
+                fill_color:     '#ccc',
+                text_color:     '#000'
+            },
+            'Bug' => {
+                fill_color:     '#ccc',
+                text_color:     '#000'
             }
         },
         type: {
@@ -84,23 +90,31 @@ Redmine::Plugin.register :redmine_planning do
             }
         },
         relation: {
-            stroke: {
-                precedes:           '#55f',
-                blocks:             '#f00',
-                relates:            '#bbf',
-                copied_to:          '#bfb',
-                duplicates:         '#fbb',
-                parent:             '#66f'
+            precedes: {
+                stroke:             '#55f',
+                style:              '->'
             },
-            style: {
-                precedes:           '->',
-                blocks:             '-*',
-                relates:            '<-->',
-                copied_to:          '*--*',
-                duplicates:         '<--..>',
-                parent:             '--'
+            blocks: {
+                stroke:             '#f00',
+                style:              '-*'
+            },
+            relates: {
+                stroke:             '#bbf',
+                style:              '<-->'
+            },
+            copied_to: {
+                stroke:             '#bfb',
+                style:              '*--*'
+            },
+            duplicates: {
+                stroke:             '#fbb',
+                style:              '<--..>'
+            },
+            parent: {
+                stroke:             '#66f',
+                style:              '--'
             }
-        },
+        }
     },
     :partial => 'planning/planning_settings';
 
