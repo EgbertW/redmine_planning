@@ -115,6 +115,7 @@ class PlanningController < ApplicationController
             :project_name => prj[:name],
             :tracker => tracker,
             :name => issue[:subject],
+            :description => issue[:description],
             :leaf => issue.leaf?,
             :parent => issue.parent_issue_id
         })

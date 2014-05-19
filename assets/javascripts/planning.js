@@ -116,7 +116,7 @@ function showTooltip(issue)
 
     var desc = issue.description;
     if (desc.length > 500)
-        desc = desc.substr(0, 500);
+        desc = desc.substr(0, 300);
 
     d.html(
         '<table>' +
@@ -125,8 +125,8 @@ function showTooltip(issue)
         '<tr><th>' + t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
         '<tr><th>' + t('start_date') + ':</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
         '<tr><th>' + t('due_date') + ':</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
-        '<tr><th>' + t('descrption') + ':</th><td>' + issue.description + '</td></tr>' + 
-        '<tr><th>' + t('leaf_task') + ':</th><td>' + (issue.leaf ? t('yes') : t('no')) + '</td></tr>'
+        '<tr><th>' + t('leaf_task') + ':</th><td>' + (issue.leaf ? t('yes') : t('no')) + '</td></tr>' +
+        '<tr><th>' + t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
 
     $('body').append(d);
@@ -844,7 +844,7 @@ function PlanningIssue(data)
     this.start_date = new Date(data['start_date']);
     this.due_date = new Date(data['due_date']);
     this.name = data['name'];
-    this.description = data['name'];
+    this.description = data['description'];
     this.project = data['project_name'];
     this.project_identifier = data['project_identifier'];
     this.project_id = data['project_id'];
