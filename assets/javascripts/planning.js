@@ -1362,7 +1362,7 @@ function PlanningIssue_click()
         new_relation.delay = this.start_date.subtract(source.due_date).days() - 1;
     chart.relating = null;
 
-    jQuery.post(this.options.root_url + 'issues/' + new_relation.from + '/relations', {
+    jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/relations', {
         'authenticity_token': AUTH_TOKEN,
         'commit': 'Add',
         'relation': {
@@ -1722,7 +1722,7 @@ function PlanningIssueRelation_click(e)
     if (confirm(t('confirm_remove_relation', this.type, this.from, this.to)))
     {
         $.ajax({
-            url: this.root_url + 'relations/' + this.id,
+            url: this.chart.root_url + 'relations/' + this.id,
             data: {'authenticity_token': AUTH_TOKEN},
             type: 'DELETE',
             success: function(result) {
