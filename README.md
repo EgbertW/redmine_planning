@@ -29,6 +29,8 @@ $ <restart web server>
 
 This plugin uses no additional tables so no database migration is needed. You do, however, need to give the plan and reschedule permission to users that you want to be able to use this plugin. This plugin cannot be enabled or disabled for specific projects but instead hooks into the existing issue tracking project module.
 
+## Translations
+All strings have been localized and currently an English and a Dutch translation is available. If you would like your language supported, use the files in config/locales/ as a starting point for translation and submit a pull request when you're done. I'd be happy to merge it in.
 
 ## Short manual
 ### Starting planning
@@ -65,6 +67,13 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 ## Known issues
 * Since copied-to, duplicates and relates relations are not visualized, it is possible to attempt to create a new relation in the Planning chart which is not executed by the server because a relation already exists between these issues. The chart will not recognize failure currently so this will go unnoticed. **Planned fix**: at least recognize and reflect failure in the chart. Additionally, offer to replace existing relations with a blocked or precedes relation. This will probably involve switching from the existing IssueRelation controller because the JavaScript-output is hard to parse and the API call gives no information at all. It may also involve optionally visualize other relation-types so that this problem can be detected in JavaScript and handled more intelligently.
 * The tooltip showing issue information may something get in the way many issues are close together. **Planned fix**: better placement / close button / to be determined.
+
+# Version log
+* 0.6.0: May 19, 2014. Fully localized plugin with initial translations in English and Dutch.
+* 0.5.2: May 19, 2014. Fix superfluous include of RbCommonHelper issue in hook.
+* 0.5.1: May 19, 2014. Pass along Redmine root-URL to avoid depending on Redmine being installed in the webroot
+* 0.5.0: May 17, 2014. Initial release
+* Pre-0.5.0: May 9, 2014. Pre-release development
 
 # License
 Copyright 2014 Egbert van der Wal 
