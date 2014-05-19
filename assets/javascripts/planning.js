@@ -177,6 +177,7 @@ function PlanningChart(options)
         month_names: [null, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
         abbr_month_names: [null, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         project: '',
+        root_url: '',
         tracker: {
             'Default': {
                 fill_color: '#ccc',
@@ -784,7 +785,7 @@ PlanningChart.prototype.saveDirty = function()
         delete this.dirty[id].critical_path_determined;
     }
     var chart = this;
-    $.post('/projects/' + this.options.project + '/plan', store, function (response) {
+    $.post(this.options.root_url + 'projects/' + this.options.project + '/plan', store, function (response) {
         for (var issue_id in response)
         {
             var issue = chart.issues[issue_id];
@@ -1345,7 +1346,7 @@ function PlanningIssue_click()
         new_relation.delay = this.start_date.subtract(source.due_date).days() - 1;
     chart.relating = null;
 
-    jQuery.post('/issues/' + new_relation.from + '/relations', {
+    jQuery.post(this.options.root_url + 'issues/' + new_relation.from + '/relations', {
         'authenticity_token': AUTH_TOKEN,
         'commit': 'Add',
         'relation': {
@@ -1622,12 +1623,14 @@ PlanningIssue.prototype.draw = function()
             this.geometry.x + (this.geometry.width / 2),
             this.geometry.y + (this.geometry.height / 2),
             n
-        )
-        .attr({
+        );
+        var attribs = {
             'font-size': 9,
-            'cursor': 'move',
-            'stroke': text_color
-        });
+            'cursor': 'move'
+        };
+        if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
+            attribs['stroke'] = text_color;
+        this.text.attr(attribs);
         this.text.mousemove(PlanningIssue_changeCursor, this);
         this.text.mouseout(PlanningIssue_closeTooltip, this);
         this.text.drag(PlanningIssue_dragMove, PlanningIssue_dragStart, PlanningIssue_dragEnd, this, this, this);
@@ -1703,7 +1706,7 @@ function PlanningIssueRelation_click(e)
     if (confirm("Are you sure you want to remove the " + this.type + " relation from " + this.from + " to " + this.to))
     {
         $.ajax({
-            url: '/relations/' + this.id,
+            url: this.root_url + 'relations/' + this.id,
             data: {'authenticity_token': AUTH_TOKEN},
             type: 'DELETE',
             success: function(result) {
@@ -1858,7 +1861,7 @@ jQuery(function () {
         var f = $(this);
         var params = {};
         var values = f.serialize();
-        jQuery.getJSON('/projects/' + project + '/plan/issues', values, updateIssues);
+        jQuery.getJSON(redmine_planning_settings.root_url + 'projects/' + project + '/plan/issues', values, updateIssues);
     });
 
     setFocusDate();

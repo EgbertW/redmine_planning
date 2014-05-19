@@ -83,6 +83,9 @@
     # Add month abbreviations and names
     plugin_settings[:month_names] = ::I18n.t('date.month_names', options)
     plugin_settings[:abbr_month_names] = ::I18n.t('date.abbr_month_names', options)
+
+    # Add root path to Redmine
+    plugin_settings[:root_url] = home_url
     %>
     <%= javascript_tag "var redmine_planning_settings = " + JSON.generate(plugin_settings, quirks_mode: true) %>
     <%= javascript_include_tag 'planning', :plugin => 'redmine_planning' %>
