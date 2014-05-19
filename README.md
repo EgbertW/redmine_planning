@@ -1,12 +1,11 @@
 # Redmine Planning plugin
-
 This plugin is aimed to make project planning easier using Redmine. While Redmine possesses many functions to update and relate issues, they are not easily usable when making an extensive planning. Creating relations and moving issues has to be done on the corresponding issue page, which can take a long time when updating many issues.
 
 Additionally, constraints are only somewhat enforced but no critical path analysis is performed and it is unknown what limits are available for start and due dates.
 
 The redmine_planning plugin makes this process easier. A tiny update upgrades the existing Gantt chart to make the issues drag-and-droppable. Each issue can easily be rescheduled this way, but no relation checking is done.
 
-The major part of this plugin focuses on a new addition to the project pages, the 'Plan' page. On the Plan page a HTML5 canvas is used to draw the issues and relations and to make it very easy to resize and move issues. In this process, the limits are also taken into account by a (still incomplete) critical path analysis. When moving an issue, dependent issues will be moved along until their respective limits are reached to avoid postponing the entire planning.
+The major part of this plugin focuses on a new addition to the project pages, the 'Plan' page. On the Plan page a HTML5 canvas is used to draw the issues and relations and to make it very easy to resize and move issues. In this process, the limits are also taken into account by a critical path analysis. When moving an issue, dependent issues will be moved along until their respective limits are reached to avoid postponing the entire planning.
 
 ## Highlights
 * Moving issues by dragging
@@ -17,7 +16,8 @@ The major part of this plugin focuses on a new addition to the project pages, th
 * Resize parent issues to contain child issues
 * Enforce end-to-end (blocks) relations and end-to-begin (precedes) relations
 * Interactive scrolling and panning
-* Configurable Javascript with different date formats, colors for trackers and branch or leaf issues.
+* Configurable colors for leaf/branch/root issues, trackers and relations using Redmine plugin configuration
+* Fully localized, translations for English and Dutch available
 
 ## Installation
 
@@ -70,8 +70,8 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 
 # Version log
 * 0.6.0: May 19, 2014. Fully localized plugin with initial translations in English and Dutch.
-* 0.5.2: May 19, 2014. Fix superfluous include of RbCommonHelper issue in hook.
-* 0.5.1: May 19, 2014. Pass along Redmine root-URL to avoid depending on Redmine being installed in the webroot
+* 0.5.2: May 19, 2014. Fix superfluous include of RbCommonHelper issue in hook (issue #2)
+* 0.5.1: May 19, 2014. Pass along Redmine root-URL to avoid depending on Redmine being installed in the webroot (issue #1)
 * 0.5.0: May 17, 2014. Initial release
 * Pre-0.5.0: May 9, 2014. Pre-release development
 
@@ -85,5 +85,3 @@ redmine_planning is free software: you can redistribute it and/or modify it unde
 redmine_planning is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with redmine_planning. If not see <http://www.gnu.org/licenses/>.
-
-
