@@ -15,9 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with redmine_planning. If not see <http://www.gnu.org/licenses/>.
 
-include RbCommonHelper
-include ContextMenusHelper
-
 module RedminePlanning
   class Hooks < Redmine::Hook::ViewListener
     def view_layouts_base_html_head(context={})
