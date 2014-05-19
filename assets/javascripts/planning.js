@@ -1722,7 +1722,7 @@ function PlanningIssueRelation_click(e)
     if (confirm(t('confirm_remove_relation', this.type, this.from, this.to)))
     {
         $.ajax({
-            url: this.chart.root_url + 'relations/' + this.id,
+            url: this.chart.options.root_url + 'relations/' + this.id,
             data: {'authenticity_token': AUTH_TOKEN},
             type: 'DELETE',
             success: function(result) {
