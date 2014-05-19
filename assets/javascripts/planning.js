@@ -319,9 +319,13 @@ function PlanningChart(options)
     this.setViewBox(Math.round(w / -2), 0, w, h);
     this.addBackground();
     this.container.on('mousewheel', function (e) {
+        // Try to avoid default browser scrolling behavior. However, in Chrome,
+        // this doesn't seem to work. That is why, in addition to Ctrl+Scroll ->
+        // Zoom, Alt+Scroll also works.
         e.preventDefault();
+        e.stopImmediatePropagation();
 
-        if (!e.ctrlKey)
+        if (!e.ctrlKey && !e.altKey)
         {
             var v = e.deltaY > 0 ? -1 : (e.deltaY < 0 ? 1 : 0);
             var h = e.deltaX > 0 ? 1 : (e.deltaX < 0 ? -1 : 0);
