@@ -76,6 +76,14 @@ class PlanningController < ApplicationController
     end
   end
 
+  def issue_compare(x, y)
+    if x.root_id == y.root_id
+      x.lft <=> y.lft
+    else
+      x.root_id <=> y.root_id
+    end
+  end
+
   def issues
     @gantt = Redmine::Helpers::Gantt.new(params)
     @gantt.project = @project
@@ -99,7 +107,7 @@ class PlanningController < ApplicationController
 
     Project.project_tree(projects) do |project, level|
       issues = @gantt.project_issues(project)
-      @gantt.class.sort_issues!(issues)
+      issues.sort! { |a, b| issue_compare(a, b) }
       issues.each do |issue|
         #issue[:start_date] = Date.new() if issue[:start_date].nil?
         #issue[:due_date] = (issue[:start_date] + 5) if issue[:due_date].nil?
