@@ -93,6 +93,7 @@ class PlanningController < ApplicationController
 
     projects = @gantt.projects
     response = {issues: [], relations: []}
+    relations = {}
     trackers = Tracker.find(:all)
 
     project_ids = {}
@@ -109,8 +110,6 @@ class PlanningController < ApplicationController
       issues = @gantt.project_issues(project)
       issues.sort! { |a, b| issue_compare(a, b) }
       issues.each do |issue|
-        #issue[:start_date] = Date.new() if issue[:start_date].nil?
-        #issue[:due_date] = (issue[:start_date] + 5) if issue[:due_date].nil?
         prj = project_ids[issue[:project_id]]
         tracker = tracker_ids[issue.tracker_id]
         logger.error(issue[:tracker])
@@ -127,19 +126,22 @@ class PlanningController < ApplicationController
             :leaf => issue.leaf?,
             :parent => issue.parent_issue_id
         })
-      end
-    end
-    @gantt.relations.each do |from_relation, relations|
-        relations.each do |relation|
-            response[:relations].push({
+        issue.relations.each do |relation|
+            relations[relation[:id]] = {
                 :id => relation[:id],
                 :from => relation[:issue_from_id],
                 :to => relation[:issue_to_id],
                 :type => relation[:relation_type],
                 :delay => relation[:delay]
-            })
+            }
         end
+      end
     end
+
+    # Add values from hash. Relations are not added to the array right away
+    # because that may result in duplicates, now they are unduplicated by their
+    # id.
+    response[:relations] = relations.values
 
     respond_to do |format|
       format.json { render json: response }

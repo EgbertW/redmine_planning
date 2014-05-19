@@ -227,7 +227,6 @@ function PlanningChart(options)
             copied_to: {
                 stroke:             '#bfb',
                 style:              '*--*'
-
             },
             duplicates: {
                 stroke:             '#fbb',
@@ -465,7 +464,11 @@ PlanningChart.prototype.setViewBox = function(x, y, w, h)
     {
         if (k == "length")
             continue;
-        if (this.issues[k].due_date >= start_date && this.issues[k].start_date < end_date)
+        if (
+            this.issues[k].due_date >= start_date && 
+            this.issues[k].start_date < end_date &&
+            this.issues[k].geometry.y >= this.viewbox.y + this.options.margin.y
+        )
         {
             if (!this.issues[k].element)
             {
@@ -482,7 +485,7 @@ PlanningChart.prototype.setViewBox = function(x, y, w, h)
 
 PlanningChart.prototype.createRelation = function(type)
 {
-    if (type !== "blocks" && type !== "precedes")
+    if (type !== "blocks" && type !== "precedes" && type !== "relates" && type !== "copied_to" && type !== "duplicates")
         throw "Invalid relation: " + type;
     this.relating = {'type': type, 'from': null, 'to': null};
 };
@@ -538,16 +541,17 @@ PlanningChart.prototype.removeIssue = function(id)
 PlanningChart.prototype.addRelation = function(relation)
 {
     if (this.relations[relation.id])
-        return;
+        return this.relations[relation.id];
 
     if (!this.issues[relation.from])
-        return;
+        return relation;
 
     if (!this.issues[relation.to])
-        return;
+        return relation;
 
     relation.setChart(this, this.relations.length++);
     this.relations[relation.id] = relation;
+    return relation;
 };
 
 PlanningChart.prototype.removeRelation = function(id)
@@ -1293,7 +1297,8 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
                 allowed = false;
             else if (t == "precedes" && this.start_date < source.due_date)
                 allowed = false;
-
+            if (this.id == source.id)
+                allowed = false;
         }
         if (allowed)
         {
@@ -1353,6 +1358,8 @@ function PlanningIssue_click()
         return;
     if (type == "precedes" && this.start_date < source.due_date)
         return;
+    if (this.id == source.id)
+        return;
 
     chart.relating.to = this.id;
 
@@ -1361,6 +1368,7 @@ function PlanningIssue_click()
     if (new_relation.type == "precedes")
         new_relation.delay = this.start_date.subtract(source.due_date).days() - 1;
     chart.relating = null;
+    $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
 
     jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/relations', {
         'authenticity_token': AUTH_TOKEN,
@@ -1386,7 +1394,7 @@ function PlanningIssue_click()
         new_relation.id = m[1];
 
         var relation = new PlanningIssueRelation(new_relation);
-        chart.addRelation(relation);
+        relation = chart.addRelation(relation);
         
         // Set up additional info
         relation.fromIssue = chart.issues[relation.from];
@@ -1566,7 +1574,7 @@ PlanningIssue.prototype.draw = function()
         (sx > this.chart.viewbox.x + this.chart.viewbox.w) ||
         (ex < this.chart.viewbox.x) ||
         (sy > this.chart.viewbox.y + this.chart.viewbox.h) ||
-        (ey < this.chart.viewbox.y)
+        (ey < this.chart.viewbox.y + this.chart.options.margin.y * 2)
     )
     {
         if (this.element)
@@ -1714,6 +1722,7 @@ function PlanningIssueRelation_click(e)
         return;
 
     this.chart.deleting = false;
+    $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
     this.chart.elements.relations.attr('stroke-width', 2);
     var type = this.type;
 
@@ -1777,6 +1786,15 @@ PlanningIssueRelation.prototype.draw = function()
         }
     }
 
+    // Swap from and to for relates types if that improves the view. Relations
+    // of type relates are undirected anyway.
+    if (this.type == "relates" && from_geo.x > to_geo.x)
+    {
+        var tmp = from_geo;
+        from_geo = to_geo;
+        to_geo = tmp;
+    }
+
     // Storage for path points
     var points = [];
     
@@ -1797,15 +1815,19 @@ PlanningIssueRelation.prototype.draw = function()
     if (to_geo.x < points[1][0])
     {
         // First the point just above the to-issue
+        var to_y = to_geo.y > from_geo.y ? 
+                (to_geo.y - (this.chart.options.spacing.y / 2.0))
+            :
+                (to_geo.y + to_geo.height + (this.chart.options.spacing.y / 2.0));
         points.push([
             points[1][0],
-            to_geo.y - (this.chart.options.spacing.y / 2.0)
+            to_y
         ]);
 
         // Then move left to X-spacing pixels before the to-issue
         points.push([
             to_geo.x - this.chart.options.spacing.x,
-            points[2][1]
+            to_y
         ]);
     }
 
@@ -1841,7 +1863,8 @@ PlanningIssueRelation.prototype.draw = function()
         var stroke = this.chart.options.relation[this.type].stroke;
         this.element.attr(this.chart.getRelationAttributes(this.type));
         this.element.click(PlanningIssueRelation_click, this);
-
+        var title = t(this.type + "_description", "#" + this.from + ": '" + this.fromIssue.name + "'", "#" + this.to + ": '" + this.toIssue.name + "'", this.delay);
+        this.element.attr('title', title);
         this.chart.elements.relations.push(this.element);
     }
     else
@@ -1889,6 +1912,8 @@ jQuery(function () {
         $('#query_form').submit();
     }, 500);
 
+    $('#redmine_planning_panel_2').buttonset();
+
     $('#redmine_planning_back_button').click(function () {
         rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(-16)));
         rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
@@ -1900,23 +1925,32 @@ jQuery(function () {
         rm_chart.draw();
     });
 
-    $('#redmine_planning_block_button').click(function () {
-        rm_chart.createRelation("blocks");
-    });
-
-    $('#redmine_planning_precedes_button').click(function () {
-        rm_chart.createRelation("precedes");
+    $('.add_relation_button').click(function () {
+        var type = jQuery(this).data('type');
+        $('#redmine_planning_cancel_button').attr('title', t('cancel'));
+        rm_chart.createRelation(type);
     });
 
     $('#redmine_planning_cancel_button').click(function () {
         if (rm_chart.relating)
         {
             rm_chart.relating = null;
+            $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
         }
         else
         {
-            rm_chart.deleting = rm_chart.deleting ? false : true;
-            rm_chart.elements.relations.attr('stroke-width', rm_chart.deleting ? 4 : 2);
+            if (rm_chart.deleting)
+            {
+                $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
+                rm_chart.deleting = false;
+                rm_chart.elements.relations.attr('stroke-width', 2);
+            }
+            else
+            {
+                $('#redmine_planning_cancel_button').attr('title', t('cancel'));
+                rm_chart.deleting = true;
+                rm_chart.elements.relations.attr('stroke-width', 4);
+            }
         }
     });
 });
