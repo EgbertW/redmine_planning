@@ -38,6 +38,7 @@ class PlanningController < ApplicationController
     retrieve_query
     @query.group_by = nil
     @gantt.query = @query if @query.valid?
+
   end
 
   def save

@@ -43,20 +43,14 @@ Date.prototype.add = function (interval) { var r = new Date(); r.setTime(this.ge
 Date.prototype.toISODateString = function () { return this.getFullYear() + "-" + (this.getMonth() + 1) + "-" + this.getDate(); };
 Date.prototype.resetTime = function () { this.setUTCHours(0); this.setUTCMinutes(0); this.setUTCSeconds(0); };
 
-var redmine_planning_translations = {
-    parent_task: 'Parent task',
-    start_date: 'Start date',
-    due_date: 'Due date',
-    description: 'Description',
-    leaf_task: 'Leaf task',
-    yes: 'yes',
-    no: 'no',
-    project: 'Project'
-}
-
 function t(str)
 {
-    return redmine_planning_translations[str] ? redmine_planning_translations[str] : "N/A";
+    str = rm_chart.translations[str] ? rm_chart.translations[str] : "N/A";
+
+    for (var i = 1; i < arguments.length; ++i)
+        str = str.replace("##" + i, arguments[i]) 
+
+    return str;
 }
 
 function getToday()
@@ -117,7 +111,7 @@ function showTooltip(issue)
     else if (issue.parent_id)
     {
         parent_issue = '<a href="/issues/' + issue.parent_id + '" target="_blank">'
-            + "#" + issue.parent_id + " (unavailable)";
+            + "#" + issue.parent_id + " (" + t('unavailable') + ")";
     }
 
     var desc = issue.description;
@@ -177,7 +171,7 @@ function PlanningChart(options)
         month_names: [null, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
         abbr_month_names: [null, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         project: '',
-        root_url: '',
+        root_url: '/',
         tracker: {
             'Default': {
                 fill_color: '#ccc',
@@ -269,6 +263,28 @@ function PlanningChart(options)
     this.options['margin'].y = parseInt(this.options['margin'].y);
     this.options['spacing'].x = parseInt(this.options['spacing'].x);
     this.options['spacing'].y = parseInt(this.options['spacing'].y);
+
+    // Set up translations
+    this.translations = {
+        parent_task: 'Parent task',
+        start_date: 'Start date',
+        due_date: 'Due date',
+        description: 'Description',
+        leaf_task: 'Leaf task',
+        yes: 'yes',
+        no: 'no',
+        project: 'Project',
+        unavailable: 'unavailable',
+        adding_relation_failed: 'Adding relation failed',
+        move_to: 'Move to',
+        confirm_remove_relation: 'Are you sure you want to remove the ##1 relation from ##2 to ##3?'
+    };
+
+    if (this.options.translations)
+    {
+        jQuery.extend(this.translations, this.options.translations);
+        delete this.options.translations;
+    }
 
     var relating = null;
 
@@ -1361,7 +1377,7 @@ function PlanningIssue_click()
 
         if (!m)
         {
-            alert('Adding relation failed');
+            alert(t('adding_relation_failed'));
             return;
         }
         
@@ -1420,11 +1436,11 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     var pos = this.chart.clientToCanvas(x, y);
     var tt_date;
     if (cursor == "move")
-        tt_date = "<strong>Move to:</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
+        tt_date = "<strong>" + t('move_to') + ":</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'w-resize')
-        tt_date = "<strong>Start-date:</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
+        tt_date = "<strong>" + t('start_date') + ":</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'e-resize')
-        tt_date = "<strong>Due-date:</strong> " + this.chart.formatDate(this.orig_data.due_date.add(movement));
+        tt_date = "<strong>" + t('due_date') + ":</strong> " + this.chart.formatDate(this.orig_data.due_date.add(movement));
 
     var tt = $('.date-tooltip');
     if (tt.length == 0)
@@ -1703,7 +1719,7 @@ function PlanningIssueRelation_click(e)
 
     var relation = this;
 
-    if (confirm("Are you sure you want to remove the " + this.type + " relation from " + this.from + " to " + this.to))
+    if (confirm(t('confirm_remove_relation', this.type, this.from, this.to)))
     {
         $.ajax({
             url: this.root_url + 'relations/' + this.id,

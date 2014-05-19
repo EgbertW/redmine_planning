@@ -86,6 +86,13 @@
 
     # Add root path to Redmine
     plugin_settings[:root_url] = home_url
+
+    # Add translations
+    strings = [ "parent_task", "start_date", "due_date", "description", "leaf_task", "yes", "no", "project", "unavailable", "adding_relation_failed", "move_to", "confirm_remove_relation" ]
+    plugin_settings[:translations] = {}
+    strings.each do |str|
+        plugin_settings[:translations][str] = t(("planning_" + str).to_sym)
+    end
     %>
     <%= javascript_tag "var redmine_planning_settings = " + JSON.generate(plugin_settings, quirks_mode: true) %>
     <%= javascript_include_tag 'planning', :plugin => 'redmine_planning' %>
