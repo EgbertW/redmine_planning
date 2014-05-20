@@ -72,7 +72,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * 0.6.2: May 19, 2014. Add support for copied-to, relates and duplicates relations and improve UI.
 * 0.6.1: May 19, 2014. Add compatibility with Redmine 2.3.x
 * 0.6.0: May 19, 2014. Fully localized plugin with initial translations in English and Dutch.
-* 0.5.2: May 19, 2014. Fix superfluous include of RbCommonHelper issue in hook (issue #2)
+* 0.5.2: May 19, 2014. Fix accidental dependency on RbCommonHelper (from redmine_backlogs) in hook (issue #2)
 * 0.5.1: May 19, 2014. Pass along Redmine root-URL to avoid depending on Redmine being installed in the webroot (issue #1)
 * 0.5.0: May 17, 2014. Initial release
 * Pre-0.5.0: May 9, 2014. Pre-release development
