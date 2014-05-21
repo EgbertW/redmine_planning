@@ -46,7 +46,6 @@ class PlanningController < ApplicationController
     issue_list = []
     Issue.transaction do
       params[:issues].each do |k, update|
-          logger.error(update)
           issue = Issue.find(update[:id])
           issue[:start_date] = Date.parse(update[:start_date])
           issue[:due_date] = Date.parse(update[:due_date])
@@ -113,7 +112,6 @@ class PlanningController < ApplicationController
       issues.each do |issue|
         prj = project_ids[issue[:project_id]]
         tracker = tracker_ids[issue.tracker_id]
-        logger.error(issue[:tracker])
         response[:issues].push({
             :id => issue[:id],
             :start_date => issue[:start_date],
