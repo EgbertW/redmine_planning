@@ -37,7 +37,7 @@ All strings have been localized and currently an English and a Dutch translation
 Hit the 'Plan' button next to the 'Gantt' button in any project that has Issue management enabled.
 
 ### Navigation
-You can use the 'Back 16 days' and 'Forward 16 days' to move in the planning chart. You can also drag the canvas which will move it around. You can also use the scrolwheel to scroll horizontally and vertically. If you hold the Control-button down while scrolling, the chart will zoom in and out to give more overview.
+You can use the 'Back' and 'Forward' to move in the planning chart. You can also drag the canvas which will move it around. You can also use the scrolwheel to scroll horizontally and vertically. If you hold the Control-button down while scrolling, the chart will zoom in and out to give more overview. Additionally, since browsers sometimes force zooming when holding down Control while scrolling even though the JavaScript requests it not to, Alt+Scroll will also zoom the chart.
 
 ### Types of relations
 Redmine supports four types of relations:
@@ -49,12 +49,14 @@ Redmine supports four types of relations:
 * **Relates** This type of relatio is represented as *Related to* in Redmine. There is no clear source or target issue with these relation. The merele specify that there is some kind of relation between the two issues. These relations are currently ignored by Redmine but this may change to be able to visualize them. They will not be used in dependence checking.
 
 ### Creating relations
-Use the 'Add blocking' or 'Add precedes' buttons to enable relation-creation mode. In this mode, you can create a new relation by first clicking the from issue, the issue preceding / blocking another, and then clicking the to issue, the issue following / being blocked by the first issue. Once you click on the first issue, the mouse cursor will reflect the target state: if it's a + sign, this is a valid target for the relation. If it's a forbidden sign, this relation cannot be created due to the schedule.
+Click on any of the 'Add relation' buttons to enable relation-creation mode. In this mode, you can create a new relation by first clicking the from issue, the issue preceding / blocking / duplicating / relating / copying another, and then clicking the to issue, the issue following / being blocked / being duplicated / being related / being copied to by the first issue. Once you click on the first issue, the mouse cursor will reflect the target state: if it's a + sign, this is a valid target for the relation. If it's a forbidden sign, this relation cannot be created due to the schedule.
 
-If you want to cancel the relation-creation, you can click the 'X' button to cancel the operation.
+If you want to cancel the relation-creation, you can go back to 'Move' mode by clicking on the Move button in the toolbar.
+
+Redmine allows just one relation between two issues. If, for example, a 'copied_to' relation exists, you cannot add a 'precedes' relation. If you attempt to create such a relation, you will be notified of the relation that is conflicting and suggested to remove that relation first.
 
 ### Deleting relations
-You can delete relations by first clicking the 'X' button and then clicking on the relation. When you are in relation-deletion mode all the lines of the relations will be twice as thick to make them easier to hit. Once you hit it, a popup will ask you to confirm the deletion. To cancel 'Deleting'-mode, click the 'X' button again.
+You can delete relations by first clicking the 'Delete' button and then clicking on the relation. When you are in relation-deletion mode all the lines of the relations will be twice as thick to make them easier to hit. Once you hit it, a popup will ask you to confirm the deletion. To cancel 'Deleting'-mode, click the 'X' button again.
 
 ### Moving issues
 You can move issues by clicking on the text or the rectangle and dragging it.
@@ -65,8 +67,16 @@ When you start dragging the lower and upper limits of the selected issue will be
 When you hit the left or right edge of the rectangles the cursor will indicate the resizing capability. By clicking and dragging you can make the issue shorter or longer. During resizing, the critical path analysis will be updated to reflect the changes resulting from the resize of the issue. This is mostly relevant for *Blocks* relations because an issue with an incoming *Blocks* relation will be able to start sooner if the duration of the issue is longer.
 
 ## Known issues
-* Since copied-to, duplicates and relates relations are not visualized, it is possible to attempt to create a new relation in the Planning chart which is not executed by the server because a relation already exists between these issues. The chart will not recognize failure currently so this will go unnoticed. **Planned fix**: at least recognize and reflect failure in the chart. Additionally, offer to replace existing relations with a blocked or precedes relation. This will probably involve switching from the existing IssueRelation controller because the JavaScript-output is hard to parse and the API call gives no information at all. It may also involve optionally visualize other relation-types so that this problem can be detected in JavaScript and handled more intelligently.
 * The tooltip showing issue information may something get in the way many issues are close together. **Planned fix**: better placement / close button / to be determined.
+* Critical path analysis is not completely valid when resizing issues.
+* When an issue does not have a set due date, it will have an default initial size. However, resizing will not behave as expected. The workaroundis to do the resize in two steps: first just resize it to anything, release it to set the dates and then redo it to set the proper due date.
+
+## Planned features
+* Add new issues to the current project / subprojects
+* Add parent/child relations
+* Show progress in Gantt style
+* Optionally show a list of issues at the left side of the chart, Gantt style, to make it easier to find issues over a larger timespan
+* Export chart to SVG
 
 # Version log
 * 0.6.6: May 21, 2014. Fix mouse cursor position calculation in Chrome (Webkit)
