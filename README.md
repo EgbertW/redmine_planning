@@ -69,6 +69,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * The tooltip showing issue information may something get in the way many issues are close together. **Planned fix**: better placement / close button / to be determined.
 
 # Version log
+* 0.6.3: May 21, 2014. Fix issue with adding new relations, add fullscreen function, improve button layout
 * 0.6.2: May 19, 2014. Add support for copied-to, relates and duplicates relations and improve UI.
 * 0.6.1: May 19, 2014. Add compatibility with Redmine 2.3.x
 * 0.6.0: May 19, 2014. Fully localized plugin with initial translations in English and Dutch.
