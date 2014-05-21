@@ -61,12 +61,12 @@ class PlanningController < ApplicationController
       # equal to that in the database, due to validation correction. Especially
       # for parent tasks, a reload is needed.
       issue.reload
-      response[issue.id] = {start_date: issue.start_date, due_date: issue.due_date}
+      response[issue.id] = {:start_date => issue.start_date, :due_date => issue.due_date}
       
       # Add all parents as they might've been updated as well
       parent = issue.parent
       while not parent.nil? do
-        response[parent.id] = {start_date: parent.start_date, due_date: parent.due_date}
+        response[parent.id] = {:start_date => parent.start_date, :due_date => parent.due_date}
         parent = parent.parent
       end
     end
@@ -92,13 +92,13 @@ class PlanningController < ApplicationController
     @gantt.query = @query if @query.valid?
 
     projects = @gantt.projects
-    response = {issues: [], relations: []}
+    response = {:issues => [], :relations => []}
     relations = {}
     trackers = Tracker.find(:all)
 
     project_ids = {}
     projects.each do |prj|
-        project_ids[prj.id] = {identifier: prj.identifier, name: prj.name}
+        project_ids[prj.id] = {:identifier => prj.identifier, :name => prj.name}
     end
 
     tracker_ids = {}
@@ -159,7 +159,7 @@ class PlanningController < ApplicationController
     respond_to do |format|
       format.json {
         if saved
-          response = {relation: @relation.serializable_hash, success: saved}
+          response = {:relation => @relation.serializable_hash, :success => saved}
           render json: response, :status => :ok
         else
           render_validation_errors(@relation)

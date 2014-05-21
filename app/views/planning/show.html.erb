@@ -111,7 +111,7 @@
     plugin_settings[:translations]["field_done_ratio"] = t("field_done_ratio".to_sym, options)
 
     %>
-    <%= javascript_tag "var redmine_planning_settings = " + JSON.generate(plugin_settings, quirks_mode: true) %>
+    <%= javascript_tag "var redmine_planning_settings = " + JSON.generate(plugin_settings, :quirks_mode => true) %>
     <%= javascript_include_tag 'planning', :plugin => 'redmine_planning' %>
 <% end %>
 

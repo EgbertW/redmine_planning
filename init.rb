@@ -42,77 +42,77 @@ Redmine::Plugin.register :redmine_planning do
   end
 
   settings :default => {
-        issue_height:               20,
-        day_width:                  20,
-        min_zoom_level:             -2,
-        max_zoom_level:             3,
-        zoom_factor:                1.5,
-        margin:                     {x: 10, y: 20},
-        spacing:                    {x: 10, y: 10},
-        issue_resize_border:        3,
-        tracker: {
+        :issue_height =>             20,
+        :day_width =>                20,
+        :min_zoom_level =>           -2,
+        :max_zoom_level =>           3,
+        :zoom_factor =>              1.5,
+        :margin =>                   {:x => 10, :y => 20},
+        :spacing =>                  {:x => 10, :y => 10},
+        :issue_resize_border =>      3,
+        :tracker => {
             'Default' => {
-                fill_color:     '#ccc',
-                text_color:     '#000'
+                :fill_color =>       '#ccc',
+                :text_color =>       '#000'
             },
             'Task' => {
-                fill_color:     '#ccc',
-                text_color:     '#000'
+                :fill_color =>       '#ccc',
+                :text_color =>       '#000'
             },
             'Feature' => {
-                fill_color:     '#f99',
-                text_color:     '#000'
+                :fill_color =>        '#f99',
+                :text_color =>        '#000'
             },
             'Support' => {
-                fill_color:     '#ccc',
-                text_color:     '#000'
+                :fill_color =>        '#ccc',
+                :text_color =>        '#000'
             },
             'Bug' => {
-                fill_color:     '#ccc',
-                text_color:     '#000'
+                :fill_color =>        '#ccc',
+                :text_color =>        '#000'
             }
         },
-        type: {
-            leaf: {
-                stroke:             '#800',
-                width:              2,
-                radius:             2
+        :type => {
+            :leaf => {
+                :stroke =>           '#800',
+                :width =>            2,
+                :radius =>           2
             },
-            branch: {
-                stroke:             '#080',
-                width:              3,
-                radius:             2
+            :branch => {
+                :stroke =>           '#080',
+                :width =>            3,
+                :radius =>           2
             },
-            root: {
-                stroke:             '#080',
-                width:              3,
-                radius:             2
+            :root => {
+                :stroke =>          '#080',
+                :width =>           3,
+                :radius =>          2
             }
         },
-        relation: {
-            precedes: {
-                stroke:             '#55f',
-                style:              '->'
+        :relation => {
+            :precedes => {
+                :stroke =>          '#55f',
+                :style =>           '->'
             },
-            blocks: {
-                stroke:             '#f00',
-                style:              '-*'
+            :blocks => {
+                :stroke =>          '#f00',
+                :style =>           '-*'
             },
-            relates: {
-                stroke:             '#bbf',
-                style:              '<-->'
+            :relates => {
+                :stroke =>          '#bbf',
+                :style =>           '<-->'
             },
-            copied_to: {
-                stroke:             '#bfb',
-                style:              '*--*'
+            :copied_to => {
+                :stroke =>          '#bfb',
+                :style =>           '*--*'
             },
-            duplicates: {
-                stroke:             '#fbb',
-                style:              '<--..>'
+            :duplicates => {
+                :stroke =>          '#fbb',
+                :style =>           '<--..>'
             },
-            parent: {
-                stroke:             '#66f',
-                style:              '--'
+            :parent => {
+                :stroke =>          '#66f',
+                :style =>           '--'
             }
         }
     },
