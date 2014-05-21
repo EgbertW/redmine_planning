@@ -9,7 +9,6 @@ nl:
   planning_add_copied_to: "Gekopiëerd-naar-relatie toevoegen"
   planning_add_duplicates: "Dupliceert-relatie toevoegen"
   planning_delete_relation: "Relatie verwijderen"
-  planning_cancel: "Annuleren"
   planning_parent_task: "Oudertaak"
   planning_start_date: "Startdatum"
   planning_due_date: "Einddatum"
@@ -28,3 +27,5 @@ nl:
   planning_copied_to_description: "Issue ##1 is gekopiëerd naar issue ##2"
   planning_duplicates_description: "Issue ##2 wordt gedupliceerd door issue ##1"
   planning_relation_exists: "Er bestaat al een relatie tussen issue ##2 en issue ##3 (type: ##1). Deze relatie moet eerst verwijderd worden."
+  planning_fullscreen: "Gebruik volledig scherm"
+  planning_leave_fullscreen: "Verlaat volledig-scherm modus"

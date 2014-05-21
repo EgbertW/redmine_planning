@@ -9,7 +9,6 @@ en:
   planning_add_copied_to: "Add copied to"
   planning_add_duplicates: "Add duplicates"
   planning_delete_relation: "Delete relation"
-  planning_cancel: "Cancel"
   planning_parent_task: "Parent task"
   planning_start_date: "Start date"
   planning_due_date: "Due date"
@@ -28,3 +27,5 @@ en:
   planning_copied_to_description: "Issue ##1 is copied to issue ##2"
   planning_duplicates_description: "Issue ##2 is duplicated by issue ##1"
   planning_relation_exists: "A relation between ##2 and ##3 exists (type: ##1). You must remove this relation first."
+  planning_fullscreen: "Enter fullscreen mode"
+  planning_leave_fullscreen: "Leave fullscreen mode"

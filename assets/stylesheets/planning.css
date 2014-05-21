@@ -116,17 +116,32 @@ div.date-tooltip p
     margin:             0;
 }
 
-#redmine_planning_panel_2 
+.redmine_planning_toolbar_button_set
 {
+    display:            inline-block;
     font-size:          0;
-    margin:             5px;
 }
 
-#redmine_planning_panel_2 button
+#redmine_planning_toolbar
 {
-    font-size:          24pt;
-    height:             40px;
-    width:              40px;
+    margin:             5px 0;
+}
+
+#redmine_planning_toolbar button,
+#redmine_planning_toolbar label
+{
+    font-size:          20pt;
+    height:             32px;
     margin:             0;
     padding:            0;
+}
+
+#redmine_planning_fullscreen_overlay
+{
+    position:           fixed;
+    top:                0;
+    left:               0;
+    width:              100%;
+    height:             100%;
+    background-color:   white;
 }

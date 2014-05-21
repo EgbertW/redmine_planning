@@ -298,17 +298,42 @@ function PlanningChart(options)
     var chart = this;
 
     var resizeFn = function () {
-        var pos = chart.container.position();
-        var footHeight = $('#footer').outerHeight();
-        var contentPadding = parseInt($('#content').css('padding-bottom'));
-        var h = Math.max(500, $(window).innerHeight() - pos.top - footHeight - contentPadding);
-        var w = $(window).innerWidth() - 2; //- (2 * pos.left);
+        var fs = jQuery('#redmine_planning_fullscreen_overlay');
+        var mb = 200;
+        var w;
+        var h;
+        if (fs.length)
+        {
+            console.log(fs.length);
+            var tb = jQuery('#redmine_planning_toolbar').outerHeight(true);
+            var wh = jQuery(window).innerHeight();
+            h = wh - tb - 10;
+            w = $(window).innerWidth() - 2;
+            console.log(h);
+            mb = 0;
+        }
+        else
+        {
+            var pos = chart.container.position();
+            var footHeight = $('#footer').outerHeight();
+            var contentPadding = parseInt($('#content').css('padding-bottom'));
+            h = Math.max(500, $(window).innerHeight() - pos.top - footHeight - contentPadding);
+            w = $(window).innerWidth() - 2; //- (2 * pos.left);
+        }
 
         chart.container.css({
             'width': w,
             'height': h,
-            'margin-bottom': 200
+            'margin-bottom': mb
         });
+        if (chart.paper)
+        {
+            // Adjust viewbox to keep the same scale
+            var w_factor = w / chart.paper.width;
+            var h_factor = h / chart.paper.height;
+            chart.paper.setSize(w, h);
+            chart.setViewBox(chart.viewbox.x, chart.viewbox.y, chart.viewbox.w * w_factor, chart.viewbox.h * h_factor);
+        }
     }
     jQuery(window).on('resize', resizeFn).resize();
     
@@ -1370,6 +1395,7 @@ function PlanningIssue_click()
         if (source.relations.outgoing[k].to == this.id)
         {
             alert(t('relation_exists', type, '#' + source.id, '#' + this.id));
+            $('#redmine_planning_move_button').click();
             return;
         }
     }
@@ -1380,8 +1406,8 @@ function PlanningIssue_click()
     if (new_relation.type == "precedes")
         new_relation.delay = this.start_date.subtract(source.due_date).days() - 1;
     chart.relating = null;
-    $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
 
+    $('#redmine_planning_move_button').click();
     jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/relations.json', {
         'authenticity_token': AUTH_TOKEN,
         'commit': 'Add',
@@ -1729,8 +1755,8 @@ function PlanningIssueRelation_click(e)
         return;
 
     this.chart.deleting = false;
-    $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
     this.chart.elements.relations.attr('stroke-width', 2);
+    $('#redmine_planning_move_button').click();
     var type = this.type;
 
     var relation = this;
@@ -1919,7 +1945,7 @@ jQuery(function () {
         $('#query_form').submit();
     }, 500);
 
-    $('#redmine_planning_panel_2').buttonset();
+    $('.redmine_planning_toolbar_button_set').buttonset();
 
     $('#redmine_planning_back_button').click(function () {
         rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(-16)));
@@ -1932,35 +1958,58 @@ jQuery(function () {
         rm_chart.draw();
     });
 
-    $('.add_relation_button').click(function () {
-        var type = jQuery(this).data('type');
-        $('#redmine_planning_cancel_button').attr('title', t('cancel'));
-        rm_chart.createRelation(type);
-    });
-
-    $('#redmine_planning_cancel_button').click(function () {
-        if (rm_chart.relating)
-        {
-            rm_chart.relating = null;
-            $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
-        }
-        else
+    $('input[name=planning-mode]').click(function () {
+        var button = jQuery(this);
+        var type = button.data('type'); 
+        if (button.hasClass('add_relation_button'))
         {
             if (rm_chart.deleting)
             {
-                $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
-                rm_chart.deleting = false;
                 rm_chart.elements.relations.attr('stroke-width', 2);
+                rm_chart.deleting = null;
             }
-            else
+            rm_chart.createRelation(type);
+        }
+        else
+        {
+            rm_chart.relating = null;
+            switch (type)
             {
-                $('#redmine_planning_cancel_button').attr('title', t('cancel'));
-                rm_chart.deleting = true;
-                rm_chart.elements.relations.attr('stroke-width', 4);
-            }
+                case "move":
+                    rm_chart.deleting = rm_chart.relating = null;
+                    rm_chart.elements.relations.attr('stroke-width', 2);
+                    break;
+                case "delete":
+                    rm_chart.relating = null;
+                    rm_chart.deleting = true;
+                    rm_chart.elements.relations.attr('stroke-width', 4);
+            };
         }
     });
-});
+
+    $('#redmine_planning_fullscreen_button').click(function () {
+        var button = jQuery(this);
+        var fs = jQuery('#redmine_planning_fullscreen_overlay');
+        var tb = jQuery('#redmine_planning_toolbar');
+        var ch = jQuery('#redmine_planning_chart');
+        var query_form = jQuery('#query_form');
+
+        if (fs.length > 0)
+        {
+            fs.children().removeClass('fullscreen');
+            query_form.after(tb, ch); 
+            fs.remove();
+            button.removeClass('ion-arrow-shrink').addClass('ion-arrow-expand');
+        }
+        else
+        {
+            fs = jQuery('<div></div>').attr('id', 'redmine_planning_fullscreen_overlay');
+            fs.appendTo('body').append(tb, ch).children().addClass('fullscreen');
+            button.removeClass('ion-arrow-expand').addClass('ion-arrow-shrink');
+        }
+        jQuery(window).resize();
+    });
+}); 
 
 function updateIssues(json)
 {
