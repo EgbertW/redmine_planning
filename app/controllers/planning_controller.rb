@@ -34,7 +34,7 @@ class PlanningController < ApplicationController
 
   def show
     Redmine::Plugin.mirror_assets(:redmine_planning)
-    @planning = {month_from: 5, year_from: 2014}
+    @planning = {:month_from => 5, :year_from => 2014}
     @gantt = Redmine::Helpers::Gantt.new(params)
     @gantt.project = @project
     retrieve_query
@@ -72,7 +72,7 @@ class PlanningController < ApplicationController
     end
 
     respond_to do |format|
-      format.json { render json: response }
+      format.json { render :json => response }
     end
   end
 
@@ -144,7 +144,7 @@ class PlanningController < ApplicationController
     response[:relations] = relations.values
 
     respond_to do |format|
-      format.json { render json: response }
+      format.json { render :json => response }
     end
   end
 
@@ -160,7 +160,7 @@ class PlanningController < ApplicationController
       format.json {
         if saved
           response = {:relation => @relation.serializable_hash, :success => saved}
-          render json: response, :status => :ok
+          render :json => response, :status => :ok
         else
           render_validation_errors(@relation)
         end

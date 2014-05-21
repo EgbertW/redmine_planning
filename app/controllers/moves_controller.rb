@@ -108,7 +108,7 @@ class MovesController < ApplicationController
 
     respond_to do |format|
       format.html { }
-      format.json { render json: [:status => result, :error => error_message, :start_date => @issue.start_date, :due_date => @issue.due_date] }
+      format.json { render :json => [:status => result, :error => error_message, :start_date => @issue.start_date, :due_date => @issue.due_date] }
     end
   end
 end
