@@ -19,6 +19,7 @@ en:
   planning_project: "Project"
   planning_unavailable: "unavailable"
   planning_adding_relation_failed: "Adding relation failed"
+  planning_move: "Move issue"
   planning_move_to: "Move to"
   planning_confirm_remove_relation: "Are you sure you want to remove the ##1 relation from ##2 to ##3?"
   planning_blocks_description: "Issue ##2 is blocked by issue ##1"

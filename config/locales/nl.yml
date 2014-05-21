@@ -19,6 +19,7 @@ nl:
   planning_project: "Project"
   planning_unavailable: "niet beschibaar"
   planning_adding_relation_failed: "Toevoegen relatie is mislukt"
+  planning_move: "Verplaats issue"
   planning_move_to: "Verplaats naar"
   planning_confirm_remove_relation: "Weet u zeker dat u de ##1 relatie tussen ##2 en ##3 wilt verwijderen?"
   planning_blocks_description: "Issue ##2 wordt geblokkeerd door issue ##1"
