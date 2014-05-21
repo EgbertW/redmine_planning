@@ -304,12 +304,10 @@ function PlanningChart(options)
         var h;
         if (fs.length)
         {
-            console.log(fs.length);
             var tb = jQuery('#redmine_planning_toolbar').outerHeight(true);
             var wh = jQuery(window).innerHeight();
             h = wh - tb - 10;
             w = $(window).innerWidth() - 2;
-            console.log(h);
             mb = 0;
         }
         else
