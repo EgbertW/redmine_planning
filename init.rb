@@ -38,7 +38,7 @@ Redmine::Plugin.register :redmine_planning do
 
   project_module :issue_tracking do
     permission :reschedule_issues, :moves => [:index, :move]
-    permission :plan_issues, :planning => [:show, :issues, :save]
+    permission :plan_issues, :planning => [:show, :issues, :save, :create_relation]
   end
 
   settings :default => {

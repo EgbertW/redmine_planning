@@ -1408,7 +1408,7 @@ function PlanningIssue_click()
     chart.relating = null;
 
     $('#redmine_planning_move_button').click();
-    jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/relations.json', {
+    jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/rmpcreate', {
         'authenticity_token': AUTH_TOKEN,
         'commit': 'Add',
         'relation': {

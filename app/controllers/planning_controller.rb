@@ -21,8 +21,10 @@ class PlanningController < ApplicationController
   unloadable
 
   menu_item :planning
-  before_filter :find_optional_project
+  before_filter :find_optional_project, :except => [:create_relation]
   rescue_from Query::StatementInvalid, :with => :query_statement_invalid
+
+  before_filter :find_issue, :authorize, :only => [:create_relation]
 
   helper :gantt
   helper :issues
@@ -38,7 +40,6 @@ class PlanningController < ApplicationController
     retrieve_query
     @query.group_by = nil
     @gantt.query = @query if @query.valid?
-
   end
 
   def save
@@ -146,5 +147,31 @@ class PlanningController < ApplicationController
     respond_to do |format|
       format.json { render json: response }
     end
+  end
+
+  def create_relation
+    @relation = IssueRelation.new(params[:relation])
+    @relation.issue_from = @issue
+    if params[:relation] && m = params[:relation][:issue_to_id].to_s.strip.match(/^#?(\d+)$/)
+      @relation.issue_to = Issue.visible.find_by_id(m[1].to_i)
+    end
+    saved = @relation.save
+
+    respond_to do |format|
+      format.json {
+        if saved
+          response = {relation: @relation.serializable_hash, success: saved}
+          render json: response, :status => :ok
+        else
+          render_validation_errors(@relation)
+        end
+      }
+    end
+  end
+  
+  private
+  def find_project
+    @issue = Issue.find(params[:id])
+    @project = @issue.project
   end
 end
