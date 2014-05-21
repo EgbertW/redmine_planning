@@ -69,6 +69,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * The tooltip showing issue information may something get in the way many issues are close together. **Planned fix**: better placement / close button / to be determined.
 
 # Version log
+* 0.6.6: May 21, 2014. Fix mouse cursor position calculation in Chrome (Webkit)
 * 0.6.5: May 21, 2014. Fix translation issues and add done ratio to the issue tooltips.
 * 0.6.4: May 21, 2014. Replace dependency on issue_relations_controller.rb with own relation creation function because it requires API authentication which is awkward.
 * 0.6.3: May 21, 2014. Fix issue with adding new relations, add fullscreen function, improve button layout

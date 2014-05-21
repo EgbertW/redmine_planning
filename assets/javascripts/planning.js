@@ -1275,17 +1275,19 @@ PlanningIssue.prototype.checkParents = function ()
 
 PlanningChart.prototype.eventToCanvas = function(e)
 {
+    // Get scale of canvas in container
     var s = this.getScale();
-    if (!e.offsetX)
-    {
-        var x = Math.round((e.layerX / s[0]) + this.viewbox.x);
-        var y = Math.round((e.layerY / s[1]) + this.viewbox.y);
-    }
-    else
-    {
-        var x = Math.round((e.offsetX / s[0]) + this.viewbox.x);
-        var y = Math.round((e.offsetY / s[1]) + this.viewbox.y);
-    }
+
+    // Get position of container
+    var cp = this.container.position();
+
+    // Get margin of container, in integral pixels
+    var mx = parseInt(this.container.css('margin-left'));
+    var my = parseInt(this.container.css('margin-top'));
+
+    // Determine position of mouse cursor
+    var x = Math.round((e.clientX - cp.left - mx) / s[0] + this.viewbox.x);
+    var y = Math.round((e.clientY - cp.top - my) / s[1] + this.viewbox.y);
     return [x, y];
 }
 
