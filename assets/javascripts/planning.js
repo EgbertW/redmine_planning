@@ -126,6 +126,7 @@ function showTooltip(issue)
         '<tr><th>' + t('start_date') + ':</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
         '<tr><th>' + t('due_date') + ':</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
         '<tr><th>' + t('leaf_task') + ':</th><td>' + (issue.leaf ? t('yes') : t('no')) + '</td></tr>' +
+        '<tr><th>' + t('field_done_ratio') + ':</th><td>' + (issue.percent_done) + '%</td></tr>' +
         '<tr><th>' + t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
 
@@ -882,6 +883,7 @@ function PlanningIssue(data)
     this.id = data['id'];
     this.tracker = data['tracker'];
     this.leaf = data['leaf'] ? true : false;
+    this.percent_done = data['percent_done'];
     this.parent_id = data['parent'];
     this.parent_issue = null;
     this.children = [];

@@ -125,7 +125,8 @@ class PlanningController < ApplicationController
             :name => issue[:subject],
             :description => issue[:description],
             :leaf => issue.leaf?,
-            :parent => issue.parent_issue_id
+            :parent => issue.parent_issue_id,
+            :percent_done => issue.done_ratio
         })
         issue.relations.each do |relation|
             relations[relation[:id]] = {
