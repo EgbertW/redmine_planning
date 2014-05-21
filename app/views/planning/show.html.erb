@@ -87,7 +87,10 @@
     options[:locale] = User.current.language unless User.current.language.blank?
 
     # Provide project and date format to Javascript
-    plugin_settings = Setting.plugin_redmine_planning.clone
+    plugin_settings = {}
+    Setting.plugin_redmine_planning.each do |k, v|
+      plugin_settings[k] = v
+    end
     plugin_settings[:project] = @project[:identifier]
     plugin_settings[:date_format] = Setting[:date_format]
     plugin_settings[:date_format] = ::I18n.t('date.formats.default', options) unless not plugin_settings[:date_format].blank?
