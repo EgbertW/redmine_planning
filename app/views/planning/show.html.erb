@@ -92,7 +92,7 @@
     plugin_settings[:root_url] = home_url
 
     # Add translations
-    strings = [ "parent_task", "start_date", "due_date", "description", "leaf_task", "yes", "no", "project", "unavailable", "adding_relation_failed", "move_to", "confirm_remove_relation", "blocks_description", "precedes_description", "relates_description", "copied_to_description", "delete_relation", "cancel"]
+    strings = [ "parent_task", "start_date", "due_date", "description", "leaf_task", "yes", "no", "project", "unavailable", "adding_relation_failed", "move_to", "confirm_remove_relation", "blocks_description", "precedes_description", "relates_description", "copied_to_description", "delete_relation", "cancel", "relation_exists"]
     plugin_settings[:translations] = {}
     strings.each do |str|
         plugin_settings[:translations][str] = t(("planning_" + str).to_sym, options)

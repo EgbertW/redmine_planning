@@ -27,3 +27,4 @@ nl:
   planning_relates_description: "Issue ##1 is gerelateerd aan issue ##2"
   planning_copied_to_description: "Issue ##1 is gekopiëerd naar issue ##2"
   planning_duplicates_description: "Issue ##2 wordt gedupliceerd door issue ##1"
+  planning_relation_exists: "Er bestaat al een relatie tussen issue ##2 en issue ##3 (type: ##1). Deze relatie moet eerst verwijderd worden."

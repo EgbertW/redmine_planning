@@ -1365,6 +1365,14 @@ function PlanningIssue_click()
     if (this.id == source.id)
         return;
 
+    for (var k in source.relations.outgoing)
+    {
+        if (source.relations.outgoing[k].to == this.id)
+        {
+            alert(t('relation_exists', type, '#' + source.id, '#' + this.id));
+            return;
+        }
+    }
     chart.relating.to = this.id;
 
     var new_relation = this.chart.relating;
@@ -1374,7 +1382,7 @@ function PlanningIssue_click()
     chart.relating = null;
     $('#redmine_planning_cancel_button').attr('title', t('delete_relation'));
 
-    jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/relations', {
+    jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/relations.json', {
         'authenticity_token': AUTH_TOKEN,
         'commit': 'Add',
         'relation': {
@@ -1384,18 +1392,7 @@ function PlanningIssue_click()
         },
         'utf': '✓'
     }, function (response) {
-        var pattern = /a href=\\"\/relations\/([0-9]+)\\"/g;
-        var m = response.match(pattern);
-
-        if (!m)
-        {
-            alert(t('adding_relation_failed'));
-            return;
-        }
-        
-        var last_match = m[m.length - 1];
-        var m = pattern.exec(last_match);
-        new_relation.id = m[1];
+        new_relation.id = response.relation.id;
 
         var relation = new PlanningIssueRelation(new_relation);
         relation = chart.addRelation(relation);
@@ -1408,8 +1405,14 @@ function PlanningIssue_click()
 
         // Draw the relation
         relation.draw();
-    }, "script");
-
+    }, "json")
+    .error(function (response) {
+        var response = jQuery.parseJSON(response.responseText);
+        if (response != null)
+            alert(response.errors[0]);
+        else
+            alert("Unexpected error in adding relation");
+    });
 }
 
 function PlanningIssue_dragStart()

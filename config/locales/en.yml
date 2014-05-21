@@ -27,3 +27,4 @@ en:
   planning_relates_description: "Issue ##1 is related to issue ##2"
   planning_copied_to_description: "Issue ##1 is copied to issue ##2"
   planning_duplicates_description: "Issue ##2 is duplicated by issue ##1"
+  planning_relation_exists: "A relation between ##2 and ##3 exists (type: ##1). You must remove this relation first."
