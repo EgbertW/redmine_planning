@@ -34,7 +34,6 @@ class PlanningController < ApplicationController
 
   def show
     Redmine::Plugin.mirror_assets(:redmine_planning)
-    @planning = {:month_from => 5, :year_from => 2014}
     @gantt = Redmine::Helpers::Gantt.new(params)
     @gantt.project = @project
     retrieve_query
@@ -162,7 +161,8 @@ class PlanningController < ApplicationController
           response = {:relation => @relation.serializable_hash, :success => saved}
           render :json => response, :status => :ok
         else
-          render_validation_errors(@relation)
+          response = {:relation => @relation.serializable_hash, :success => false}
+          render :json => response, :status => :ok
         end
       }
     end

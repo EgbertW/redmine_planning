@@ -91,7 +91,7 @@
     Setting.plugin_redmine_planning.each do |k, v|
       plugin_settings[k] = v
     end
-    plugin_settings[:project] = @project[:identifier]
+    plugin_settings[:project] = @project[:identifier] unless @project.blank?
     plugin_settings[:date_format] = Setting[:date_format]
     plugin_settings[:date_format] = ::I18n.t('date.formats.default', options) unless not plugin_settings[:date_format].blank?
 
@@ -100,7 +100,10 @@
     plugin_settings[:abbr_month_names] = ::I18n.t('date.abbr_month_names', options)
 
     # Add root path to Redmine
-    plugin_settings[:root_url] = home_url
+    plugin_settings[:urls] = {}
+    plugin_settings[:urls][:root] = home_url
+    plugin_settings[:urls][:get_issues] = @project.blank? ? rmp_gget_issues_path : rmp_get_issues_path(@project.identifier) 
+    plugin_settings[:urls][:save_planning] = @project.blank? ? rmp_gsave_planning_path : rmp_save_planning_path(@project.identifier)
 
     # Add translations
     strings = [ "parent_task", "start_date", "due_date", "description", "leaf_task", "yes", "no", "project", "unavailable", "adding_relation_failed", "move_to", "confirm_remove_relation", "blocks_description", "precedes_description", "relates_description", "copied_to_description", "delete_relation", "relation_exists", "fullscreen", "leave_fullscreen"]

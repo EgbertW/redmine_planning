@@ -17,6 +17,8 @@
 
 module RedminePlanning
   class Hooks < Redmine::Hook::ViewListener
+    render_on(:view_issues_sidebar_issues_bottom, :partial => 'hooks/rmp_add_links', :layout => false)
+
     def view_layouts_base_html_head(context={})
       return context[:controller].send(:render_to_string, {
         :locals => context,

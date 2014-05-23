@@ -172,7 +172,7 @@ function PlanningChart(options)
         month_names: [null, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
         abbr_month_names: [null, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         project: '',
-        root_url: '/',
+        urls: {root: '/', save: '/plan', get_issues: '/plan/issues'},
         tracker: {
             'Default': {
                 fill_color: '#ccc',
@@ -833,7 +833,7 @@ PlanningChart.prototype.saveDirty = function()
         delete this.dirty[id].critical_path_determined;
     }
     var chart = this;
-    $.post(this.options.root_url + 'projects/' + this.options.project + '/plan', store, function (response) {
+    $.post(this.options.urls.save_planning, store, function (response) {
         for (var issue_id in response)
         {
             var issue = chart.issues[issue_id];
@@ -1410,7 +1410,7 @@ function PlanningIssue_click()
     chart.relating = null;
 
     $('#redmine_planning_move_button').click();
-    jQuery.post(chart.options.root_url + 'issues/' + new_relation.from + '/rmpcreate', {
+    jQuery.post(chart.options.urls.root + 'issues/' + new_relation.from + '/rmpcreate', {
         'authenticity_token': AUTH_TOKEN,
         'commit': 'Add',
         'relation': {
@@ -1420,6 +1420,9 @@ function PlanningIssue_click()
         },
         'utf': '✓'
     }, function (response) {
+        if (!response.success)
+            return;
+
         new_relation.id = response.relation.id;
 
         var relation = new PlanningIssueRelation(new_relation);
@@ -1766,7 +1769,7 @@ function PlanningIssueRelation_click(e)
     if (confirm(t('confirm_remove_relation', this.type, this.from, this.to)))
     {
         $.ajax({
-            url: this.chart.options.root_url + 'relations/' + this.id,
+            url: this.chart.options.urls.root + 'relations/' + this.id,
             data: {'authenticity_token': AUTH_TOKEN},
             type: 'DELETE',
             success: function(result) {
@@ -1935,7 +1938,8 @@ jQuery(function () {
         var f = $(this);
         var params = {};
         var values = f.serialize();
-        jQuery.getJSON(redmine_planning_settings.root_url + 'projects/' + project + '/plan/issues', values, updateIssues);
+        var url = redmine_planning_settings.urls.get_issues;
+        jQuery.getJSON(url, values, updateIssues);
     });
 
     setFocusDate();

@@ -1,5 +1,7 @@
 ---
 en:
+  planning_head_planning: "Planning"
+  planning_label_planning: "Plan projects"
   planning_center_on: "Center on"
   planning_back_16_days: "Back 16 days"
   planning_forward_16_days: "Forward 16 days"
