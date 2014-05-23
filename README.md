@@ -79,6 +79,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * Export chart to SVG
 
 # Version log
+* 0.6.7: May 23, 2014. Allow planning for all projects by going to /plan
 * 0.6.6: May 21, 2014. Fix mouse cursor position calculation in Chrome (Webkit)
 * 0.6.5: May 21, 2014. Fix translation issues and add done ratio to the issue tooltips.
 * 0.6.4: May 21, 2014. Replace dependency on issue_relations_controller.rb with own relation creation function because it requires API authentication which is awkward.
