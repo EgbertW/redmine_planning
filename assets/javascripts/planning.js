@@ -43,16 +43,6 @@ Date.prototype.add = function (interval) { var r = new Date(); r.setTime(this.ge
 Date.prototype.toISODateString = function () { return this.getFullYear() + "-" + (this.getMonth() + 1) + "-" + this.getDate(); };
 Date.prototype.resetTime = function () { this.setUTCHours(0); this.setUTCMinutes(0); this.setUTCSeconds(0); };
 
-function t(str)
-{
-    str = rm_chart.translations[str] ? rm_chart.translations[str] : "N/A";
-
-    for (var i = 1; i < arguments.length; ++i)
-        str = str.replace("##" + i, arguments[i]) 
-
-    return str;
-}
-
 function getToday()
 {
     var today = new Date();
@@ -111,7 +101,7 @@ function showTooltip(issue)
     else if (issue.parent_id)
     {
         parent_issue = '<a href="/issues/' + issue.parent_id + '" target="_blank">'
-            + "#" + issue.parent_id + " (" + t('unavailable') + ")";
+            + "#" + issue.parent_id + " (" + issue.t('unavailable') + ")";
     }
 
     var desc = issue.description;
@@ -121,13 +111,13 @@ function showTooltip(issue)
     d.html(
         '<table>' +
         '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + issue.tracker + ' <a href="/issues/' + issue.id + '" target="_blank">#' + issue.id + '</a>: ' + issue.name + '</th></tr>' +
-        '<tr><th>' + t('project') + ':</th><td><a href="/projects/' + issue.project_identifier + '" target="_blank">' + issue.project + '</a></td></tr>' + 
-        '<tr><th>' + t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
-        '<tr><th>' + t('start_date') + ':</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
-        '<tr><th>' + t('due_date') + ':</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
-        '<tr><th>' + t('leaf_task') + ':</th><td>' + (issue.leaf ? t('yes') : t('no')) + '</td></tr>' +
-        '<tr><th>' + t('field_done_ratio') + ':</th><td>' + (issue.percent_done) + '%</td></tr>' +
-        '<tr><th>' + t('description') + ':</th><td>' + desc + '</td></tr>' 
+        '<tr><th>' + issue.t('project') + ':</th><td><a href="/projects/' + issue.project_identifier + '" target="_blank">' + issue.project + '</a></td></tr>' + 
+        '<tr><th>' + issue.t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
+        '<tr><th>' + issue.t('start_date') + ':</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
+        '<tr><th>' + issue.t('due_date') + ':</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
+        '<tr><th>' + issue.t('leaf_task') + ':</th><td>' + (issue.leaf ? issue.t('yes') : issue.t('no')) + '</td></tr>' +
+        '<tr><th>' + issue.t('field_done_ratio') + ':</th><td>' + (issue.percent_done) + '%</td></tr>' +
+        '<tr><th>' + issue.t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
 
     $('body').append(d);
@@ -172,7 +162,9 @@ function PlanningChart(options)
         month_names: [null, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
         abbr_month_names: [null, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         project: '',
-        urls: {root: '/', save: '/plan', get_issues: '/plan/issues'},
+        on_move_issues: null,
+        on_delete_relation: null,
+        on_create_relation: null,
         tracker: {
             'Default': {
                 fill_color: '#ccc',
@@ -248,6 +240,8 @@ function PlanningChart(options)
     if (this.options['target'].substr(0, 1) == '#')
         this.options['target'] = this.options['target'].substr(1);
 
+    this.id_counter = 1000000;
+
     var numeric = {
         'issue_height': parseInt,
         'day_width': parseInt,
@@ -271,6 +265,7 @@ function PlanningChart(options)
         due_date: 'Due date',
         description: 'Description',
         leaf_task: 'Leaf task',
+        milestone: 'Milestone',
         yes: 'yes',
         no: 'no',
         project: 'Project',
@@ -290,7 +285,7 @@ function PlanningChart(options)
 
     this.issues = {'length': 0};
     this.relations = {'length': 0};
-    this.dirty = {};
+    this.changed = {};
     this.setBaseDate(this.options['base_date'] ? this.options['base_date'] : getToday());
     this.container = $('#' + this.options['target']);
     var pos = this.container.position();
@@ -387,6 +382,16 @@ function PlanningChart(options)
         }
     });
 }
+
+PlanningChart.prototype.t = function t(str)
+{
+    str = this.translations[str] ? this.translations[str] : "N/A";
+
+    for (var i = 1; i < arguments.length; ++i)
+        str = str.replace("##" + i, arguments[i]) 
+
+    return str;
+};
 
 PlanningChart.prototype.setMonthNames = function(names, abbreviations)
 {
@@ -579,6 +584,10 @@ PlanningChart.prototype.addRelation = function(relation)
 
     relation.setChart(this, this.relations.length++);
     this.relations[relation.id] = relation;
+
+    // Set up additional info
+    relation.fromIssue = this.issues[relation.from].addRelation(this);
+    relation.toIssue = this.issues[relation.to].addRelation(this);
     return relation;
 };
 
@@ -813,61 +822,61 @@ PlanningChart.prototype.analyzeHierarchy = function()
     }
 };
 
-PlanningChart.prototype.markDirty = function(issue)
+PlanningChart.prototype.markChanged = function(issue)
 {
-    this.dirty[issue.id] = issue;
+    this.changed[issue.id] = issue;
 }
 
-PlanningChart.prototype.saveDirty = function()
+PlanningChart.prototype.saveChanged = function()
 {
-    var store = {"issues": [], "relations": [], 'authenticity_token': AUTH_TOKEN};
-    for (var id in this.dirty)
+    var issues = [];
+    for (var id in this.changed)
     {
-        store.issues.push({
+        issues.push({
             'id': id,
-            'start_date': this.dirty[id].start_date.toISODateString(),
-            'due_date': this.dirty[id].due_date.toISODateString()
+            'start_date': this.changed[id].start_date.toISODateString(),
+            'due_date': this.changed[id].due_date.toISODateString()
         });
-        this.dirty[id].orig_data = null;
-        this.dirty[id].orig_geometry = null;
-        delete this.dirty[id].critical_path_determined;
+        this.changed[id].orig_data = null;
+        this.changed[id].orig_geometry = null;
+        delete this.changed[id].critical_path_determined;
     }
-    var chart = this;
-    $.post(this.options.urls.save_planning, store, function (response) {
-        for (var issue_id in response)
-        {
-            var issue = chart.issues[issue_id];
-            if (!issue)
-                continue;
-            var saved_start_date = new Date(response[issue_id].start_date);
-            var saved_due_date = new Date(response[issue_id].due_date);
-            
-            var update = [false, false];
-            if (saved_start_date.getTime() != issue.start_date.getTime())
-            {
-                issue.start_date = saved_start_date;
-                update[0] = true;
-            }
-            if (saved_due_date.getTime() != issue.due_date.getTime())
-            {
-                issue.due_date = saved_due_date;
-                update[1] = true;
-            }
-            if (update[0] || update[1])
-            {
-                issue.update();
-                if (update[0])
-                    for (var k in issue.relations.incoming)
-                        issue.relations.incoming[k].draw();
-                if (update[1])
-                    for (var k in issue.relations.outgoing)
-                        issue.relations.outgoing[k].draw();
-            }
 
-            issue.update();
-        }
-    }, "json");
-    this.dirty = {};
+    if (this.options.on_move_issues)
+        this.options.on_move_issues(issues);
+    this.changed = {};
+};
+
+PlanningChart.prototype.updateIssue = function(id, response)
+{
+    var issue = this.issues[id];
+    if (!issue)
+        return;
+
+    var new_start_date = new Date(response[issue_id].start_date);
+    var new_due_date = new Date(response[issue_id].due_date);
+    
+    var update = [false, false];
+    if (new_start_date.getTime() != issue.start_date.getTime())
+    {
+        issue.start_date = new_start_date;
+        update[0] = true;
+    }
+    if (new_due_date.getTime() != issue.due_date.getTime())
+    {
+        issue.due_date = new_due_date;
+        update[1] = true;
+    }
+    if (update[0] || update[1])
+    {
+        issue.update();
+        if (update[0])
+            for (var k in issue.relations.incoming)
+                issue.relations.incoming[k].draw();
+        if (update[1])
+            for (var k in issue.relations.outgoing)
+                issue.relations.outgoing[k].draw();
+    }
 }
 
 /* Issue class definition */
@@ -899,6 +908,37 @@ PlanningIssue.prototype.setChart = function(chart, idx)
     this.chart = chart;
     this.idx = idx;
 };
+
+PlanningIssue.prototype.t = function()
+{
+    return this.chart.t.apply(this.chart, arguments);
+};
+
+PlanningIssue.prototype.addRelation = function(relation)
+{
+    if (!this.relations)
+        this.relations = {};
+    if (relation.from = this.id)
+    {
+        if (!this.relations['outgoing'])
+            this.relations['outgoing'] = [];
+        for (var k in this.relations.outgoing)
+            if (this.relations.outgoing[k].id = relation.id)
+                return;
+        this.relations.outgoing.push(relation);
+    }
+    if (relation.to = this.id)
+    {
+        if (!this.relations['incoming'])
+            this.relations['incoming'] = [];
+        for (var k in this.relations.incoming)
+            if (this.relations.incoming[k].id = relation.id)
+                return;
+        this.relations.incoming.push(relation);
+    }
+    return this;
+}
+
 
 PlanningIssue.prototype.getRelations = function()
 {
@@ -946,7 +986,7 @@ PlanningIssue.prototype.backup = function()
         if (this.orig_data.due_date == null || this.orig_data.due_date.getFullYear() == "1970")
             this.orig_data.due_date = this.orig_data.start_date.add(DateInterval.createDays(1));
     }
-    this.chart.markDirty(this);
+    this.chart.markChanged(this);
 };
 
 PlanningIssue.prototype.move = function(arg1, arg2)
@@ -984,7 +1024,7 @@ PlanningIssue.prototype.move = function(arg1, arg2)
     else
         throw "Invalid arguments: arg1: " + arg1 + ", arg2: " + arg2;
 
-    // Make sure the element is marked dirty
+    // Make sure the element is marked as changed
     this.backup();
     this.update();
 
@@ -1396,7 +1436,7 @@ function PlanningIssue_click()
     {
         if (source.relations.outgoing[k].to == this.id)
         {
-            alert(t('relation_exists', type, '#' + source.id, '#' + this.id));
+            alert(chart.t('relation_exists', type, '#' + source.id, '#' + this.id));
             $('#redmine_planning_move_button').click();
             return;
         }
@@ -1404,40 +1444,44 @@ function PlanningIssue_click()
     chart.relating.to = this.id;
 
     var new_relation = this.chart.relating;
+    new_relation.id = this.chart.id_counter++;
     new_relation.delay = null;
     if (new_relation.type == "precedes")
         new_relation.delay = this.start_date.subtract(source.due_date).days() - 1;
     chart.relating = null;
 
+    var relation = new PlanningIssueRelation(new_relation, chart);
+
     $('#redmine_planning_move_button').click();
-    jQuery.post(chart.options.urls.root + 'issues/' + new_relation.from + '/rmpcreate', {
+    if (this.chart.options.on_create_relation)
+        this.chart.options.on_create_relation(relation);
+    else
+        this.chart.draw();
+};
+
+function on_create_relation(relation)
+{
+    jQuery.post(redmine_planning_settings.urls.root + 'issues/' + relation.from + '/rmpcreate', {
         'authenticity_token': AUTH_TOKEN,
         'commit': 'Add',
         'relation': {
-            'issue_to_id': new_relation.to,
-            'relation_type': new_relation.type,
-            'delay': new_relation.delay
+            'issue_to_id': relation.to,
+            'relation_type': relation.type,
+            'delay': relation.delay
         },
         'utf': '✓'
     }, function (response) {
         if (!response.success)
             return;
 
-        new_relation.id = response.relation.id;
-
-        var relation = new PlanningIssueRelation(new_relation);
-        relation = chart.addRelation(relation);
+        // Update the id
+        relation.id = response.relation.id;
         
-        // Set up additional info
-        relation.fromIssue = chart.issues[relation.from];
-        relation.toIssue = chart.issues[relation.to];
-        relation.fromIssue.relations.outgoing.push(relation);
-        relation.toIssue.relations.incoming.push(relation);
-
         // Draw the relation
         relation.draw();
     }, "json")
     .error(function (response) {
+        relation.remove();
         var response = jQuery.parseJSON(response.responseText);
         if (response != null)
             alert(response.errors[0]);
@@ -1482,11 +1526,11 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     var pos = this.chart.clientToCanvas(x, y);
     var tt_date;
     if (cursor == "move")
-        tt_date = "<strong>" + t('move_to') + ":</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
+        tt_date = "<strong>" + chart.t('move_to') + ":</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'w-resize')
-        tt_date = "<strong>" + t('start_date') + ":</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
+        tt_date = "<strong>" + chart.t('start_date') + ":</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
     else if (cursor == 'e-resize')
-        tt_date = "<strong>" + t('due_date') + ":</strong> " + this.chart.formatDate(this.orig_data.due_date.add(movement));
+        tt_date = "<strong>" + chart.t('due_date') + ":</strong> " + this.chart.formatDate(this.orig_data.due_date.add(movement));
 
     var tt = $('.date-tooltip');
     if (tt.length == 0)
@@ -1572,7 +1616,7 @@ function PlanningIssue_dragEnd()
 
     this.dragging = false;
     this.chart.dragging = false;
-    this.chart.saveDirty();
+    this.chart.saveChanged();
     if (this.critical_lines)
     {
         this.critical_lines.remove();
@@ -1742,7 +1786,7 @@ PlanningIssue.prototype.draw = function()
 }
 
 /** IssueRelation class definition */
-function PlanningIssueRelation(data)
+function PlanningIssueRelation(data, chart)
 {
     this.from = data['from'];
     this.to = data['to'];
@@ -1751,8 +1795,17 @@ function PlanningIssueRelation(data)
     this.delay = data['delay'] ? data['delay'] : 0;
 
     this.element = null;
-    this.chart = null;
+    this.chart = chart ? chart : null;
 }
+
+PlanningIssueRelation.prototype.remove = function () {
+    if (this.element)
+    {
+        this.element.remove();
+        this.element = null;
+    }
+    this.chart.removeRelation(this.id);
+};
 
 function PlanningIssueRelation_click(e)
 {
@@ -1766,18 +1819,12 @@ function PlanningIssueRelation_click(e)
 
     var relation = this;
 
-    if (confirm(t('confirm_remove_relation', this.type, this.from, this.to)))
+    if (confirm(this.chart.t('confirm_remove_relation', this.type, this.from, this.to)))
     {
-        $.ajax({
-            url: this.chart.options.urls.root + 'relations/' + this.id,
-            data: {'authenticity_token': AUTH_TOKEN},
-            type: 'DELETE',
-            success: function(result) {
-                relation.element.remove();
-                relation.chart.removeRelation(relation.id);
-            },
-            dataType: 'script'
-        });
+        if (this.chart.options.on_delete_relation)
+            this.chart.options.on_delete_relation(relation);
+        else
+            this.remove();
     }
 }
 
@@ -1800,6 +1847,10 @@ PlanningIssueRelation.prototype.setChart = function(chart, idx)
  */
 PlanningIssueRelation.prototype.draw = function()
 {
+    // Add to chart if that hadn't been done yet
+    if (!this.chart.relations[this.id])
+        this.chart.addRelation(this);
+
     // Get relevant geometry
     if (!this.chart.issues[this.from])
         return;
@@ -1901,7 +1952,7 @@ PlanningIssueRelation.prototype.draw = function()
         var stroke = this.chart.options.relation[this.type].stroke;
         this.element.attr(this.chart.getRelationAttributes(this.type));
         this.element.click(PlanningIssueRelation_click, this);
-        var title = t(this.type + "_description", "#" + this.from + ": '" + this.fromIssue.name + "'", "#" + this.to + ": '" + this.toIssue.name + "'", this.delay);
+        var title = this.chart.t(this.type + "_description", "#" + this.from + ": '" + this.fromIssue.name + "'", "#" + this.to + ": '" + this.toIssue.name + "'", this.delay);
         this.element.attr('title', title);
         this.chart.elements.relations.push(this.element);
     }
@@ -1929,8 +1980,15 @@ function setFocusDate()
 }
 
 jQuery(function () {
-    rm_chart = new PlanningChart(redmine_planning_settings);
     var project = redmine_planning_settings['project'];
+        
+    // Set up some callbacks
+    redmine_planning_settings['on_delete_relation'] = on_delete_relation;
+    redmine_planning_settings['on_create_relation'] = on_create_relation;
+    redmine_planning_settings['on_move_issues'] = on_move_issues;
+
+    // Create the chart
+    rm_chart = new PlanningChart(redmine_planning_settings);
 
     jQuery('#query_form').on('submit', function (e) {
         e.preventDefault();
@@ -2025,7 +2083,30 @@ function updateIssues(json)
         rm_chart.addIssue(new PlanningIssue(json['issues'][k]));
 
     for (var k in json['relations'])
-        rm_chart.addRelation(new PlanningIssueRelation(json['relations'][k]));
+        rm_chart.addRelation(new PlanningIssueRelation(json['relations'][k], rm_chart));
 
     rm_chart.draw();
 }
+
+function on_delete_relation(relation)
+{
+    $.ajax({
+        url: redmine_planning_settings.urls.root + 'relations/' + relation.id,
+        data: {'authenticity_token': AUTH_TOKEN},
+        type: 'DELETE',
+        success: function(result) {
+            relation.remove();
+        },
+        dataType: 'script'
+    });
+}
+
+function on_move_issues(issues)
+{
+    var store = {"issues": issues, "relations": [], 'authenticity_token': AUTH_TOKEN};
+    $.post(redmine_planning_settings.urls.save_planning, store, function (response) {
+        for (var issue_id in response)
+            rm_chart.updateIssue(response);
+    }, "json");
+}
+
