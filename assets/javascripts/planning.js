@@ -19,19 +19,67 @@ along with redmine_planning. If not see <http://www.gnu.org/licenses/>.
 
 var rm_chart;
 
+// Create the Object.keys function for those that do not support it (IE 8.0)
+if (!Object.keys)
+{
+    Object.keys = function (obj)
+    {
+        var keys = [];
+        for (var k in obj)
+            if (obj.hasOwnProperty(k))
+                keys.push(k);
+    };
+}
+
 /* DateInterval class definition */
-function DateInterval(ms) { this.ms = ms; };
-DateInterval.prototype.seconds = function () { return this.ms / 1000; };
-DateInterval.prototype.minutes = function () { return this.ms / 60000; };
-DateInterval.prototype.hours = function () { return this.ms / 3600000; };
-DateInterval.prototype.days = function () { return this.ms / 86400000; };
-DateInterval.createDays = function(n) { return new DateInterval(86400000 * n) };
-DateInterval.createHours = function(n) { return new DateInterval(3600000 * n) };
-DateInterval.createMinutes = function(days) { return new DateInterval(60000 * n) };
-DateInterval.createSeconds = function(days) { return new DateInterval(1000 * n) };
+function DateInterval(ms)
+{
+    this.ms = ms;
+}
+
+DateInterval.prototype.seconds = function ()
+{
+    return this.ms / 1000;
+};
+
+DateInterval.prototype.minutes = function ()
+{
+    return this.ms / 60000;
+};
+
+DateInterval.prototype.hours = function ()
+{
+    return this.ms / 3600000;
+};
+
+DateInterval.prototype.days = function ()
+{
+    return this.ms / 86400000;
+};
+
+DateInterval.createDays = function (n)
+{
+    return new DateInterval(86400000 * n);
+};
+
+DateInterval.createHours = function (n)
+{
+    return new DateInterval(3600000 * n);
+};
+
+DateInterval.createMinutes = function (n)
+{
+    return new DateInterval(60000 * n);
+};
+
+DateInterval.createSeconds = function (n)
+{
+    return new DateInterval(1000 * n);
+};
 
 /* Inject DateInterval into Date class */
-Date.prototype.subtract = function (other) { 
+Date.prototype.subtract = function (other)
+{ 
     if (other instanceof Date)
         return new DateInterval(this - other);
     else if (other instanceof DateInterval)
@@ -39,16 +87,32 @@ Date.prototype.subtract = function (other) {
     else
         throw "Invalid argument: " + other;
 };
-Date.prototype.add = function (interval) { var r = new Date(); r.setTime(this.getTime() + interval.ms); return r;};
-Date.prototype.toISODateString = function () { return this.getFullYear() + "-" + (this.getMonth() + 1) + "-" + this.getDate(); };
-Date.prototype.resetTime = function () { this.setUTCHours(0); this.setUTCMinutes(0); this.setUTCSeconds(0); };
+
+Date.prototype.add = function (interval)
+{
+    var r = new Date();
+    r.setTime(this.getTime() + interval.ms);
+    return r;
+};
+
+Date.prototype.toISODateString = function ()
+{
+    return this.getFullYear() + "-" + (this.getMonth() + 1) + "-" + this.getDate();
+};
+
+Date.prototype.resetTime = function ()
+{
+    this.setUTCHours(0);
+    this.setUTCMinutes(0);
+    this.setUTCSeconds(0);
+};
 
 function getToday()
 {
     var today = new Date();
     today.resetTime();
     var d = today.getDate();
-    if (d % 2 != 0)
+    if (d % 2)
         --d;
     today.setUTCDate(d);
     return today;
@@ -88,20 +152,20 @@ function showTooltip(issue)
     d.addClass('planning-tooltip')
     .css({
         'left': x,
-        'top': y,
+        'top': y
     });
 
     var parent_issue = 'none';
     if (issue.parent_issue)
     {
-        parent_issue = '<a href="/issues/' + issue.parent_issue.id + '" target="_blank">' 
-            + issue.parent_issue.tracker + ' #' + issue.parent_issue.id + ': ' + issue.parent_issue.name
-            + '</a>';
+        parent_issue = '<a href="/issues/' + issue.parent_issue.id + '" target="_blank">' +
+            issue.parent_issue.tracker + ' #' + issue.parent_issue.id + ': ' + issue.parent_issue.name +
+            '</a>';
     }
     else if (issue.parent_id)
     {
-        parent_issue = '<a href="/issues/' + issue.parent_id + '" target="_blank">'
-            + "#" + issue.parent_id + " (" + issue.t('unavailable') + ")";
+        parent_issue = '<a href="/issues/' + issue.parent_id + '" target="_blank">' +
+            "#" + issue.parent_id + " (" + issue.t('unavailable') + ")";
     }
 
     var desc = issue.description;
@@ -123,7 +187,8 @@ function showTooltip(issue)
     $('body').append(d);
 
     // Add hover handler
-    d.on("mousemove", function () {
+    d.on("mousemove", function ()
+    {
         var tt = jQuery(this);
         tt.show();
         var to = jQuery(this).data('timeout');
@@ -132,12 +197,17 @@ function showTooltip(issue)
             clearTimeout(to);
             tt.data('timeout', null);
         }
-    }).on("mouseleave", function () {
+    }).on("mouseleave", function ()
+    {
         var tt = jQuery(this);
         if (!tt.data('timeout'))
         {
-            var to = setTimeout(function () {
-                tt.fadeOut(function() {jQuery(this).remove()});
+            var to = setTimeout(function ()
+            {
+                tt.fadeOut(function ()
+                {
+                    jQuery(this).remove();
+                });
             }, 1000);
             tt.data('timeout', to);
         }
@@ -237,8 +307,8 @@ function PlanningChart(options)
 
     this.options = jQuery.extend(defaults, options);
 
-    if (this.options['target'].substr(0, 1) == '#')
-        this.options['target'] = this.options['target'].substr(1);
+    if (this.options.target.substr(0, 1) == '#')
+        this.options.target = this.options.target.substr(1);
 
     this.id_counter = 1000000;
 
@@ -249,14 +319,15 @@ function PlanningChart(options)
         'min_zoom_level': parseInt,
         'max_zoom_level': parseInt,
         'zoom_factor': parseFloat,
-        'issue_resize_border': parseInt,
+        'issue_resize_border': parseInt
     };
-    for (var k in numeric)
-        this.options[k] = numeric[k](this.options[k]);
-    this.options['margin'].x = parseInt(this.options['margin'].x);
-    this.options['margin'].y = parseInt(this.options['margin'].y);
-    this.options['spacing'].x = parseInt(this.options['spacing'].x);
-    this.options['spacing'].y = parseInt(this.options['spacing'].y);
+    var keys = Object.keys(numeric);
+    for (var iter = 0; iter < keys.length; ++iter)
+        this.options[keys[iter]] = numeric[keys[iter]](this.options[keys[iter]]);
+    this.options.margin.x = parseInt(this.options.margin.x, 10);
+    this.options.margin.y = parseInt(this.options.margin.y, 10);
+    this.options.spacing.x = parseInt(this.options.spacing.x, 10);
+    this.options.spacing.y = parseInt(this.options.spacing.y, 10);
 
     // Set up translations
     this.translations = {
@@ -286,14 +357,15 @@ function PlanningChart(options)
     this.issues = {'length': 0};
     this.relations = {'length': 0};
     this.changed = {};
-    this.setBaseDate(this.options['base_date'] ? this.options['base_date'] : getToday());
-    this.container = $('#' + this.options['target']);
+    this.setBaseDate(this.options.base_date ? this.options.base_date : getToday());
+    this.container = jQuery('#' + this.options.target);
     var pos = this.container.position();
     this.container.css('margin-left', -pos.left);
     this.container.css('margin-right', -pos.left);
     var chart = this;
 
-    var resizeFn = function () {
+    var resizeFn = function ()
+    {
         var fs = jQuery('#redmine_planning_fullscreen_overlay');
         var mb = 200;
         var w;
@@ -303,16 +375,16 @@ function PlanningChart(options)
             var tb = jQuery('#redmine_planning_toolbar').outerHeight(true);
             var wh = jQuery(window).innerHeight();
             h = wh - tb - 10;
-            w = $(window).innerWidth() - 2;
+            w = jQuery(window).innerWidth() - 2;
             mb = 0;
         }
         else
         {
             var pos = chart.container.position();
-            var footHeight = $('#footer').outerHeight();
-            var contentPadding = parseInt($('#content').css('padding-bottom'));
-            h = Math.max(500, $(window).innerHeight() - pos.top - footHeight - contentPadding);
-            w = $(window).innerWidth() - 2; //- (2 * pos.left);
+            var footHeight = jQuery('#footer').outerHeight();
+            var contentPadding = parseInt(jQuery('#content').css('padding-bottom'), 10);
+            h = Math.max(500, jQuery(window).innerHeight() - pos.top - footHeight - contentPadding);
+            w = jQuery(window).innerWidth() - 2; //- (2 * pos.left);
         }
 
         chart.container.css({
@@ -328,16 +400,17 @@ function PlanningChart(options)
             chart.paper.setSize(w, h);
             chart.setViewBox(chart.viewbox.x, chart.viewbox.y, chart.viewbox.w * w_factor, chart.viewbox.h * h_factor);
         }
-    }
+    };
     jQuery(window).on('resize', resizeFn).resize();
     
-    this.paper = Raphael(this.options['target']);
+    this.paper = Raphael(this.options.target);
     var w = this.container.innerWidth();
     var h = this.container.innerHeight();
     this.geometry_limits = {x: [-w / 2, -w / 2], y: [0, 0]};
     this.setViewBox(Math.round(w / -2), 0, w, h);
     this.addBackground();
-    this.container.on('mousewheel', function (e) {
+    this.container.on('mousewheel', function (e)
+    {
         // Try to avoid default browser scrolling behavior. However, in Chrome,
         // this doesn't seem to work. That is why, in addition to Ctrl+Scroll ->
         // Zoom, Alt+Scroll also works.
@@ -371,7 +444,7 @@ function PlanningChart(options)
 
             // Determine new width and height
             var new_w = Math.round(rm_chart.container.width() / Math.pow(rm_chart.options.zoom_factor, zoom));
-            var new_h = Math.round(rm_chart.container.height() / Math.pow(rm_chart.options.zoom_factor,zoom));
+            var new_h = Math.round(rm_chart.container.height() / Math.pow(rm_chart.options.zoom_factor, zoom));
 
             // We want the center to go to the point where the scroll button was hit
             var center_pos = rm_chart.clientToCanvas(e.offsetX, e.offsetY);
@@ -387,26 +460,26 @@ PlanningChart.prototype.t = function t(str)
 {
     str = this.translations[str] ? this.translations[str] : "N/A";
 
-    for (var i = 1; i < arguments.length; ++i)
-        str = str.replace("##" + i, arguments[i]) 
+    for (var iter = 1; iter < arguments.length; ++iter)
+        str = str.replace("##" + iter, arguments[iter]);
 
     return str;
 };
 
-PlanningChart.prototype.setMonthNames = function(names, abbreviations)
+PlanningChart.prototype.setMonthNames = function (names, abbreviations)
 {
-    this.options['month_names'] = jQuery.extend({}, names);
-    this.options['abbr_month_names'] = jQuery.extend({}, abbreviations);
-}
+    this.options.month_names = jQuery.extend({}, names);
+    this.options.abbr_month_names = jQuery.extend({}, abbreviations);
+};
 
-PlanningChart.prototype.getTrackerAttrib = function(tracker, attrib)
+PlanningChart.prototype.getTrackerAttrib = function (tracker, attrib)
 {
     if (this.options.tracker[tracker] && this.options.tracker[tracker][attrib])
         return this.options.tracker[tracker][attrib];
-    return this.options.tracker['Default'][attrib];
+    return this.options.tracker.Default[attrib];
 };
 
-PlanningChart.prototype.getRelationAttributes = function(relation_type)
+PlanningChart.prototype.getRelationAttributes = function (relation_type)
 {
     var attributes = {
         'stroke-width': 2,
@@ -447,7 +520,7 @@ PlanningChart.prototype.getRelationAttributes = function(relation_type)
     return attributes;
 };
 
-PlanningChart.prototype.setBaseDate = function(date)
+PlanningChart.prototype.setBaseDate = function (date)
 {
     var base_date = new Date(date.getTime());
     base_date.resetTime();
@@ -462,7 +535,7 @@ PlanningChart.prototype.setBaseDate = function(date)
     var diff = Math.round(base_date.subtract(reference).days()) % 4;
     base_date = base_date.add(DateInterval.createDays(-diff));
     this.base_date = date;
-}
+};
 
 function clamp(val, min, max)
 {
@@ -471,7 +544,7 @@ function clamp(val, min, max)
     return Math.max(min, Math.min(max, val));
 }
 
-PlanningChart.prototype.setViewBox = function(x, y, w, h)
+PlanningChart.prototype.setViewBox = function (x, y, w, h)
 {
     // Set new viewbox
     if (!this.viewbox)
@@ -493,10 +566,14 @@ PlanningChart.prototype.setViewBox = function(x, y, w, h)
     this.drawHeader(start_date, end_date);
 
     // Update issues
-    for (var k in this.issues)
+    var keys = Object.keys(this.issues);
+    var k; // Key iterator
+    for (var iter = 0; iter < keys.length; ++iter)
     {
+        k = keys[iter];
         if (k == "length")
             continue;
+
         if (
             this.issues[k].due_date >= start_date && 
             this.issues[k].start_date < end_date &&
@@ -514,21 +591,21 @@ PlanningChart.prototype.setViewBox = function(x, y, w, h)
             this.issues[k].update();
         }
     }
-}
+};
 
-PlanningChart.prototype.createRelation = function(type)
+PlanningChart.prototype.createRelation = function (type)
 {
     if (type !== "blocks" && type !== "precedes" && type !== "relates" && type !== "copied_to" && type !== "duplicates")
         throw "Invalid relation: " + type;
     this.relating = {'type': type, 'from': null, 'to': null};
 };
 
-PlanningChart.prototype.dayWidth = function()
+PlanningChart.prototype.dayWidth = function ()
 {
     return this.options.day_width;
 };
 
-PlanningChart.prototype.formatDate = function(date)
+PlanningChart.prototype.formatDate = function (date)
 {
     if (!date || date.getFullYear() == "1970")
         return "Not set";
@@ -549,10 +626,10 @@ PlanningChart.prototype.formatDate = function(date)
         .replace("%b", b)
         .replace("%B", B);
     return fmt;
-}
+};
 
 
-PlanningChart.prototype.addIssue = function(issue)
+PlanningChart.prototype.addIssue = function (issue)
 {
     if (this.issues[issue.id])
         return;
@@ -561,7 +638,7 @@ PlanningChart.prototype.addIssue = function(issue)
     this.issues[issue.id] = issue;
 };
 
-PlanningChart.prototype.removeIssue = function(id)
+PlanningChart.prototype.removeIssue = function (id)
 {
     if (this.issues[id])
     {
@@ -569,9 +646,9 @@ PlanningChart.prototype.removeIssue = function(id)
             this.issues[id].element.remove();
         delete this.issues[id];
     }
-}
+};
 
-PlanningChart.prototype.addRelation = function(relation)
+PlanningChart.prototype.addRelation = function (relation)
 {
     if (this.relations[relation.id])
         return this.relations[relation.id];
@@ -591,32 +668,33 @@ PlanningChart.prototype.addRelation = function(relation)
     return relation;
 };
 
-PlanningChart.prototype.removeRelation = function(id)
+PlanningChart.prototype.removeRelation = function (id)
 {
     if (this.relations[id])
     {
         if (this.relations[id].element)
             this.relations[id].element.remove();
-        for (var k in this.relations[id].fromIssue.relations.outgoing)
+        var iter;
+        for (iter = 0; iter < this.relations[id].fromIssue.relations.outgoing.length; ++iter)
         {
-            if (this.relations[id].fromIssue.relations.outgoing[k].id = id)
+            if (this.relations[id].fromIssue.relations.outgoing[iter].id === id)
             {
-                delete this.relations[id].fromIssue.relations.outgoing[k];
+                delete this.relations[id].fromIssue.relations.outgoing[iter];
                 break;
             }
         }
-        for (var k in this.relations[id].toIssue.relations.incoming)
+        for (iter = 0; iter < this.relations[id].toIssue.relations.incoming; ++iter)
         {
-            if (this.relations[id].toIssue.relations.incoming[k].id = id)
+            if (this.relations[id].toIssue.relations.incoming[iter].id === id)
             {
-                delete this.relations[id].toIssue.relations.incoming[k];
+                delete this.relations[id].toIssue.relations.incoming[iter];
                 break;
             }
         }
 
         delete this.relations[id];
     }
-}
+};
 
 PlanningChart.prototype.addBackground = function ()
 {
@@ -627,7 +705,8 @@ PlanningChart.prototype.addBackground = function ()
 
     var chart = this;
 
-    this.bg.drag(function (dx, dy) {
+    this.bg.drag(function (dx, dy)
+    {
         var w = chart.dayWidth();
         var h = chart.options.issue_height;
         var nDays = Math.round(dx / -w);
@@ -637,13 +716,14 @@ PlanningChart.prototype.addBackground = function ()
         var new_y = chart.viewbox.sy + nIssues * h;
         if (new_x != chart.viewbox.x || new_y != chart.viewbox.y)
             chart.setViewBox(new_x, new_y, chart.viewbox.w, chart.viewbox.h);
-    }, function () {
+    }, function ()
+    {
         chart.viewbox.sx = chart.viewbox.x;
         chart.viewbox.sy = chart.viewbox.y;
     });
 };
 
-PlanningChart.prototype.reset = function()
+PlanningChart.prototype.reset = function ()
 {
     this.paper.clear();
     this.header = null;
@@ -654,7 +734,7 @@ PlanningChart.prototype.reset = function()
     this.relations = {'length': 0};
 };
 
-PlanningChart.prototype.drawHeader = function(start_date, end_date)
+PlanningChart.prototype.drawHeader = function (start_date, end_date)
 {
     if (this.header)
     {
@@ -674,19 +754,20 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
     startDay -= startDay % 4;
     var endDay = startDay + nDays;
 
+    var days, x, y; // Storage for header parameters
     for (var w = startDay; w <= endDay; w += 2)
     {
         var cur = new Date(base.getTime() + w * 86400000);
 
-        var days = cur.subtract(base).days();
-        var x = this.options.margin.x + days * dw;
-        var y = this.viewbox.y;
+        days = cur.subtract(base).days();
+        x = this.options.margin.x + days * dw;
+        y = this.viewbox.y;
 
         var line = this.paper.path("M" + x + "," + -10000 + "L" + x + "," + 10000);
         line.attr('title', this.formatDate(cur));
         lines.push(line);
 
-        if ((dw >= 20 && w % 4 == 0) || w % 8 == 0)
+        if ((dw >= 20 && w % 4) || w % 8)
             texts.push(this.paper.text(x + 2, y + 10, this.formatDate(cur)));
     }
 
@@ -694,7 +775,7 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
     this.header.push(texts);
     lines.attr({
         'stroke': '#bbb',
-        'stroke-width': 1,
+        'stroke-width': 1
     });
     texts.attr({
         'font-size': 10,
@@ -703,8 +784,8 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
 
     // Draw today
     var t = getToday();
-    var days = t.subtract(base).days();
-    var x = this.options.margin.x + days * dw;
+    days = t.subtract(base).days();
+    x = this.options.margin.x + days * dw;
     var today = this.paper.path("M" + x + "," + -10000 + "L" + x + "," + 10000)
     .attr({
         'stroke': '#6f6',
@@ -715,7 +796,7 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
     this.header.push(today);
 
     // Draw focus date
-    var x = this.options.margin.x;
+    x = this.options.margin.x;
     var focus = this.paper.path("M" + x + "," + -10000 + "L" + x + "," + 10000)
     .attr({
         'stroke': '#44f',
@@ -735,30 +816,36 @@ PlanningChart.prototype.drawHeader = function(start_date, end_date)
     }
 };
 
-PlanningChart.prototype.draw = function(redraw)
+PlanningChart.prototype.draw = function (redraw)
 {
     var w = this.container.width();
     var h = this.container.height();
-    this.geometry_limits = {'x': [-w / 2, -w / 2], 'y': [0, 0]}
+    this.geometry_limits = {'x': [-w / 2, -w / 2], 'y': [0, 0]};
     this.drawHeader();
 
     this.analyzeHierarchy();
-    for (var k in this.issues)
+    var ikeys = Object.keys(this.issues);
+    var iter; // Array iterator
+    var k; // Key iterator
+    for (iter = 0; iter < ikeys.length; ++iter)
     {
+        k = ikeys[iter];
         if (k == "length")
             continue;
         this.issues[k].update();
     }
 
-    for (var k in this.relations)
+    var rkeys = Object.keys(this.relations);
+    for (iter = 0; iter < rkeys.length; ++iter)
     {
+        k = rkeys[iter];
         if (k == "length")
             continue;
         this.relations[k].draw();
     }
 };
 
-PlanningChart.prototype.getScale = function()
+PlanningChart.prototype.getScale = function ()
 {
     return [
         this.container.width() / this.viewbox.w,
@@ -766,7 +853,7 @@ PlanningChart.prototype.getScale = function()
     ];
 };
 
-PlanningChart.prototype.clientToCanvas = function(x, y)
+PlanningChart.prototype.clientToCanvas = function (x, y)
 {
     var s = this.getScale();
     var cx = x / s[0] + this.viewbox.x;
@@ -775,24 +862,28 @@ PlanningChart.prototype.clientToCanvas = function(x, y)
     return [cx, cy];
 };
 
-PlanningChart.prototype.analyzeHierarchy = function()
+PlanningChart.prototype.analyzeHierarchy = function ()
 {
     // Reset and initialize all relation arrays
-    for (var k in this.issues)
+    var ikeys = Object.keys(this.issues);
+    var k; // Key iterator
+    var iter; // Array iterator
+    for (iter = 0; iter < ikeys.length; ++iter)
     {
-        if (k == "length")
+        if (ikeys[iter] == "length")
             continue;
 
-        this.issues[k].children = [];
+        this.issues[ikeys[iter]].children = [];
     }
-    for (var k in this.issues)
+    for (iter = 0; iter < ikeys.length; ++iter)
     {
+        k = ikeys[iter];
         if (k == "length")
             continue;
         this.issues[k].relations.incoming = [];
         this.issues[k].relations.outgoing = [];
 
-        if (this.issues[k].parent_id != null && this.issues[this.issues[k].parent_id])
+        if (this.issues[k].parent_id && this.issues[this.issues[k].parent_id])
         {
             this.issues[k].parent_issue = this.issues[this.issues[k].parent_id];
             this.issues[k].parent_issue.children.push(this.issues[k]);
@@ -800,8 +891,10 @@ PlanningChart.prototype.analyzeHierarchy = function()
     }
 
     // Add all relations to the corresponding issues
-    for (var k in this.relations)
+    var rkeys = Object.keys(this.relations);
+    for (iter = 0; iter < rkeys.length; ++iter)
     {
+        k = rkeys[iter];
         if (k == "length")
             continue;
         var relation = this.relations[k];
@@ -822,16 +915,18 @@ PlanningChart.prototype.analyzeHierarchy = function()
     }
 };
 
-PlanningChart.prototype.markChanged = function(issue)
+PlanningChart.prototype.markChanged = function (issue)
 {
     this.changed[issue.id] = issue;
-}
+};
 
-PlanningChart.prototype.saveChanged = function()
+PlanningChart.prototype.saveChanged = function ()
 {
     var issues = [];
-    for (var id in this.changed)
+    var ikeys = Object.keys(this.changed);
+    for (var iter = 0; iter < ikeys.length; ++iter)
     {
+        var id = ikeys[iter];
         issues.push({
             'id': id,
             'start_date': this.changed[id].start_date.toISODateString(),
@@ -847,14 +942,15 @@ PlanningChart.prototype.saveChanged = function()
     this.changed = {};
 };
 
-PlanningChart.prototype.updateIssue = function(id, response)
+PlanningChart.prototype.updateIssue = function (id, response)
 {
     var issue = this.issues[id];
+    var k; // Key iterator
     if (!issue)
         return;
 
-    var new_start_date = new Date(response[issue_id].start_date);
-    var new_due_date = new Date(response[issue_id].due_date);
+    var new_start_date = new Date(response[id].start_date);
+    var new_due_date = new Date(response[id].due_date);
     
     var update = [false, false];
     if (new_start_date.getTime() != issue.start_date.getTime())
@@ -871,29 +967,33 @@ PlanningChart.prototype.updateIssue = function(id, response)
     {
         issue.update();
         if (update[0])
-            for (var k in issue.relations.incoming)
+        {
+            for (k = 0; k < issue.relations.incoming.length; ++k)
                 issue.relations.incoming[k].draw();
+        }
         if (update[1])
-            for (var k in issue.relations.outgoing)
+        {
+            for (k = 0; k < issue.relations.outgoing.length; ++k)
                 issue.relations.outgoing[k].draw();
+        }
     }
-}
+};
 
 /* Issue class definition */
 function PlanningIssue(data)
 {
-    this.start_date = new Date(data['start_date']);
-    this.due_date = new Date(data['due_date']);
-    this.name = data['name'];
-    this.description = data['description'];
-    this.project = data['project_name'];
-    this.project_identifier = data['project_identifier'];
-    this.project_id = data['project_id'];
-    this.id = data['id'];
-    this.tracker = data['tracker'];
-    this.leaf = data['leaf'] ? true : false;
-    this.percent_done = data['percent_done'];
-    this.parent_id = data['parent'];
+    this.start_date = new Date(data.start_date);
+    this.due_date = new Date(data.due_date);
+    this.name = data.name;
+    this.description = data.description;
+    this.project = data.project_name;
+    this.project_identifier = data.project_identifier;
+    this.project_id = data.project_id;
+    this.id = data.id;
+    this.tracker = data.tracker;
+    this.leaf = data.leaf ? true : false;
+    this.percent_done = data.percent_done;
+    this.parent_id = data.parent;
     this.parent_issue = null;
     this.children = [];
 
@@ -903,57 +1003,62 @@ function PlanningIssue(data)
     this.geometry = null;
 }
 
-PlanningIssue.prototype.setChart = function(chart, idx)
+PlanningIssue.prototype.setChart = function (chart, idx)
 {
     this.chart = chart;
     this.idx = idx;
 };
 
-PlanningIssue.prototype.t = function()
+PlanningIssue.prototype.t = function ()
 {
     return this.chart.t.apply(this.chart, arguments);
 };
 
-PlanningIssue.prototype.addRelation = function(relation)
+PlanningIssue.prototype.addRelation = function (relation)
 {
+    var iter; // Array iterator
     if (!this.relations)
         this.relations = {};
-    if (relation.from = this.id)
+    if (relation.from == this.id)
     {
-        if (!this.relations['outgoing'])
-            this.relations['outgoing'] = [];
-        for (var k in this.relations.outgoing)
-            if (this.relations.outgoing[k].id = relation.id)
+        if (!this.relations.outgoing)
+            this.relations.outgoing = [];
+        for (iter = 0; iter < this.relations.outgoing.length; ++iter)
+        {
+            if (this.relations.outgoing[iter].id == relation.id)
                 return;
+        }
         this.relations.outgoing.push(relation);
     }
-    if (relation.to = this.id)
+    if (relation.to == this.id)
     {
-        if (!this.relations['incoming'])
-            this.relations['incoming'] = [];
-        for (var k in this.relations.incoming)
-            if (this.relations.incoming[k].id = relation.id)
+        if (!this.relations.incoming)
+            this.relations.incoming = [];
+        for (iter = 0; iter < this.relations.incoming.length; ++iter)
+        {
+            if (this.relations.incoming[iter].id == relation.id)
                 return;
+        }
         this.relations.incoming.push(relation);
     }
     return this;
-}
+};
 
-
-PlanningIssue.prototype.getRelations = function()
+PlanningIssue.prototype.getRelations = function ()
 {
     if (!this.relations.incoming || !this.relations.outgoing)
         this.chart.analyzeHierarchy();
 
     var list = [];
-    for (var k in this.relations.incoming)
-        list.push(this.relations.incoming[k]);
-    for (var k in this.relations.outgoing)
-        list.push(this.relations.outgoing[k]);
+    var iter; // Array iterator
+    for (iter = 0; iter < this.relations.incoming.length; ++iter)
+        list.push(this.relations.incoming[iter]);
+    for (iter = 0; iter < this.relations.outgoing.length; ++iter)
+        list.push(this.relations.outgoing[iter]);
     return list;
 };
 
-PlanningIssue.prototype.update = function()
+PlanningIssue.prototype.update = function ()
 {
     // Recalculate geometry
     var base = this.chart.base_date;
@@ -972,24 +1077,24 @@ PlanningIssue.prototype.update = function()
     this.chart.geometry_limits.y[1] = Math.max(this.geometry.y - this.chart.options.margin.y, this.chart.geometry_limits.y[1]);
 
     return this.draw();
-}
+};
 
-PlanningIssue.prototype.backup = function()
+PlanningIssue.prototype.backup = function ()
 {
     if (!this.orig_geometry)
         this.orig_geometry = jQuery.extend({}, this.geometry);
     if (!this.orig_data)
     {
         this.orig_data = {'start_date': this.start_date, 'due_date': this.due_date};
-        if (this.orig_data.start_date == null || this.orig_data.start_date.getFullYear() == "1970")
+        if (!this.orig_data.start_date || this.orig_data.start_date.getFullYear() == "1970")
             this.orig_data.start_date = getToday();
-        if (this.orig_data.due_date == null || this.orig_data.due_date.getFullYear() == "1970")
+        if (!this.orig_data.due_date || this.orig_data.due_date.getFullYear() == "1970")
             this.orig_data.due_date = this.orig_data.start_date.add(DateInterval.createDays(1));
     }
     this.chart.markChanged(this);
 };
 
-PlanningIssue.prototype.move = function(arg1, arg2)
+PlanningIssue.prototype.move = function (arg1, arg2)
 {
     if (!this.chart.move_time)
         this.chart.move_time = new Date();
@@ -1004,7 +1109,7 @@ PlanningIssue.prototype.move = function(arg1, arg2)
     if (arg1 instanceof DateInterval && !arg2)
     {
         // Nothing to do
-        if (arg1.ms == 0)
+        if (!arg1.ms)
             return;
 
         this.start_date = this.start_date.add(arg1);
@@ -1022,49 +1127,55 @@ PlanningIssue.prototype.move = function(arg1, arg2)
         this.due_date = arg2;
     }
     else
+    {
         throw "Invalid arguments: arg1: " + arg1 + ", arg2: " + arg2;
+    }
 
     // Make sure the element is marked as changed
     this.backup();
     this.update();
 
     // Update dependent issues
-    for (var k in this.relations.outgoing)
+    var iter;
+    var delay; // Delay for precedes relations
+    var target; // Target date
+    var r; // Relation reference
+    for (iter = 0; iter < this.relations.outgoing.length; ++iter)
     {
-        var r = this.relations.outgoing[k];
+        r = this.relations.outgoing[iter];
         switch (r.type)
         {
             case "blocks":
                 if (r.toIssue.due_date < this.due_date)
                 {
-                    var delay = this.due_date.subtract(r.toIssue.due_date);
+                    delay = this.due_date.subtract(r.toIssue.due_date);
                     r.toIssue.move(delay);
                 }
                 break;
             case "precedes":
-                var target = this.due_date.add(DateInterval.createDays(r.delay + 1));
-                var delay = target.subtract(r.toIssue.start_date);
+                target = this.due_date.add(DateInterval.createDays(r.delay + 1));
+                delay = target.subtract(r.toIssue.start_date);
                 r.toIssue.move(delay);
                 break;
         }
         r.draw();
     }
 
-    for (var k in this.relations.incoming)
+    for (iter = 0; iter < this.relations.incoming; ++iter)
     {
-        var r = this.relations.incoming[k];
+        r = this.relations.incoming[iter];
         switch (r.type)
         {
             case "blocks":
                 if (this.due_date < r.fromIssue.due_date)
                 {
-                    var delay = this.due_date.subtract(r.fromIssue.due_date);
+                    delay = this.due_date.subtract(r.fromIssue.due_date);
                     r.fromIssue.move(delay);
                 }
                 break;
             case "precedes":
-                var target = this.start_date.subtract(DateInterval.createDays(r.delay + 1));
-                var delay = target.subtract(r.fromIssue.due_date);
+                target = this.start_date.subtract(DateInterval.createDays(r.delay + 1));
+                delay = target.subtract(r.fromIssue.due_date);
                 r.fromIssue.move(delay);
                 break;
         }
@@ -1076,12 +1187,13 @@ PlanningIssue.prototype.move = function(arg1, arg2)
 
     // If parent was moved, children should move by the same amount
     if (arg1 instanceof DateInterval)
-        for (var ch in this.children)
-            this.children[ch].move(arg1);
+    {
+        for (iter = 0; iter < this.children.length; ++iter)
+            this.children[iter].move(arg1);
+    }
+};
 
-}
-
-PlanningIssue.prototype.calculateLimits = function(direction, ctime)
+PlanningIssue.prototype.calculateLimits = function (direction, ctime)
 {
     var start_element = false;
     if (!ctime)
@@ -1090,7 +1202,9 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
         start_element = true;
     }
     else if (this.critical_path_time && this.critical_path_time >= ctime)
+    {
         return;
+    }
 
     this.critical_path_time = ctime;
     this.min_start_date = null;
@@ -1101,12 +1215,13 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     var duration = this.due_date.subtract(this.start_date);
 
     // Check parent issue critical path
+    var limit; // Limit date storage
     if (this.parent_issue)
     {
         this.parent_issue.calculateLimits(direction, ctime);
         if (direction <= 0)
         {
-            var limit = this.parent_issue.min_start_date;
+            limit = this.parent_issue.min_start_date;
             if (
                 limit !== null &&
                 (
@@ -1120,7 +1235,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
         }
         if (direction >= 0)
         {
-            var limit = this.parent_issue.max_due_date;
+            limit = this.parent_issue.max_due_date;
             if (
                 limit !== null && 
                 (
@@ -1135,17 +1250,23 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     }
 
     // Check related tasks
-    for (var type in this.relations)
+    var types = Object.keys(this.relations);
+    var iter; // Array iterator
+    var k; // Key iterator
+    var r; // Relation reference
+    for (iter = 0; iter < types.length; ++iter)
     {
+        var type = types[iter];
+
         if (direction > 0 && type == "incoming")
             continue;
         if (direction < 0 && type == "outgoing")
             continue;
-
-        for (var k in this.relations[type])
+        
+        for (k = 0; k < this.relations[type].length; ++k)
         {
             // Update min_start_date
-            var r = this.relations[type][k];
+            r = this.relations[type][k];
             switch (r.type)
             {
                 case 'relates':
@@ -1191,7 +1312,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
                     if (type == "incoming")
                     {
                         r.fromIssue.calculateLimits(-1, ctime);
-                        var limit = r.fromIssue.min_due_date;
+                        limit = r.fromIssue.min_due_date;
                         if (limit && r.delay !== null)
                         {
                             // Enforce delay when set
@@ -1212,7 +1333,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
                     else
                     {
                         r.toIssue.calculateLimits(1, ctime);
-                        var limit = r.toIssue.max_start_date;
+                        limit = r.toIssue.max_start_date;
                         if (limit && r.delay !== null)
                         {
                             // Enforce delay when set
@@ -1235,7 +1356,7 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
         }
     }
 
-    if (direction != 0)
+    if (direction)
     {
         // If moving the endpoint is not allowed, check
         // if this is an endpoint and update accordingly
@@ -1257,14 +1378,20 @@ PlanningIssue.prototype.calculateLimits = function(direction, ctime)
     }
 
     if (this.min_start_date)
+    {
         this.min_due_date = this.min_start_date.add(duration);
+    }
     if (this.max_due_date)
+    {
         this.max_start_date = this.max_due_date.subtract(duration);
+    }
 
     if (start_element)
     {
         if (this.critical_lines)
+        {
             this.critical_lines.remove();
+        }
 
         // Show critical path lines for first element
         var min_date = this.min_start_date;
@@ -1292,15 +1419,16 @@ PlanningIssue.prototype.checkParents = function ()
     // Check parents to stretch along
     var cur_child = this;
     var cur_parent = this.parent_issue;
+    var k; // Key iterator
     while (cur_parent)
     {
         var cur_start_date = null;
         var cur_due_date = null;
-        for (var k in cur_parent.children)
+        for (k = 0; k < cur_parent.children.length; ++k)
         {
-            if (cur_start_date == null || cur_start_date > cur_parent.children[k].start_date)
+            if (!cur_start_date || cur_start_date > cur_parent.children[k].start_date)
                 cur_start_date = cur_parent.children[k].start_date;
-            if (cur_due_date == null || cur_due_date < cur_parent.children[k].due_date)
+            if (!cur_due_date || cur_due_date < cur_parent.children[k].due_date)
                 cur_due_date = cur_parent.children[k].due_date;
         }
 
@@ -1311,9 +1439,9 @@ PlanningIssue.prototype.checkParents = function ()
         cur_child = cur_parent;
         cur_parent = cur_child.parent_issue;
     }
-}
+};
 
-PlanningChart.prototype.eventToCanvas = function(e)
+PlanningChart.prototype.eventToCanvas = function (e)
 {
     // Get scale of canvas in container
     var s = this.getScale();
@@ -1322,22 +1450,26 @@ PlanningChart.prototype.eventToCanvas = function(e)
     var cp = this.container.position();
 
     // Get margin of container, in integral pixels
-    var mx = parseInt(this.container.css('margin-left'));
-    var my = parseInt(this.container.css('margin-top'));
+    var mx = parseInt(this.container.css('margin-left'), 10);
+    var my = parseInt(this.container.css('margin-top'), 10);
 
     // Determine position of mouse cursor
     var x = Math.round((e.clientX - cp.left - mx) / s[0] + this.viewbox.x);
     var y = Math.round((e.clientY - cp.top - my) / s[1] + this.viewbox.y);
     return [x, y];
-}
+};
 
 function PlanningIssue_closeTooltip(e)
 {
     var tt = jQuery('.planning-tooltip');
     if (!tt.data('timeout'))
     {
-        var to = setTimeout(function () {
-            tt.fadeOut(function () {jQuery(this).remove();});
+        var to = setTimeout(function ()
+        {
+            tt.fadeOut(function ()
+            {
+                jQuery(this).remove();
+            });
         }, 1000);
         tt.data('timeout', to);
     }
@@ -1432,12 +1564,12 @@ function PlanningIssue_click()
     if (this.id == source.id)
         return;
 
-    for (var k in source.relations.outgoing)
+    for (var iter = 0; iter < source.relations.outgoing.length; ++iter)
     {
-        if (source.relations.outgoing[k].to == this.id)
+        if (source.relations.outgoing[iter].to == this.id)
         {
             alert(chart.t('relation_exists', type, '#' + source.id, '#' + this.id));
-            $('#redmine_planning_move_button').click();
+            jQuery('#redmine_planning_move_button').click();
             return;
         }
     }
@@ -1452,12 +1584,12 @@ function PlanningIssue_click()
 
     var relation = new PlanningIssueRelation(new_relation, chart);
 
-    $('#redmine_planning_move_button').click();
+    jQuery('#redmine_planning_move_button').click();
     if (this.chart.options.on_create_relation)
         this.chart.options.on_create_relation(relation);
     else
         this.chart.draw();
-};
+}
 
 function on_create_relation(relation)
 {
@@ -1470,7 +1602,8 @@ function on_create_relation(relation)
             'delay': relation.delay
         },
         'utf': '✓'
-    }, function (response) {
+    }, function (response)
+    {
         if (!response.success)
             return;
 
@@ -1480,10 +1613,11 @@ function on_create_relation(relation)
         // Draw the relation
         relation.draw();
     }, "json")
-    .error(function (response) {
+    .error(function (response)
+    {
         relation.remove();
-        var response = jQuery.parseJSON(response.responseText);
-        if (response != null)
+        response = jQuery.parseJSON(response.responseText);
+        if (response)
             alert(response.errors[0]);
         else
             alert("Unexpected error in adding relation");
@@ -1523,7 +1657,6 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     var dWidth = dDays * this.chart.dayWidth();
     var direction = 1;
 
-    var pos = this.chart.clientToCanvas(x, y);
     var tt_date;
     if (cursor == "move")
         tt_date = "<strong>" + chart.t('move_to') + ":</strong> " + this.chart.formatDate(this.orig_data.start_date.add(movement));
@@ -1532,15 +1665,14 @@ function PlanningIssue_dragMove(dx, dy, x, y)
     else if (cursor == 'e-resize')
         tt_date = "<strong>" + chart.t('due_date') + ":</strong> " + this.chart.formatDate(this.orig_data.due_date.add(movement));
 
-    var tt = $('.date-tooltip');
-    if (tt.length == 0)
+    var tt = jQuery('.date-tooltip');
+    if (!tt.length)
     {
-        tt = $('<div></div>')
+        tt = jQuery('<div></div>')
             .addClass('date-tooltip')
             .appendTo('body');
     }
 
-    var pos = $('#' + this.chart.options.target).position();
     tt.css({
         'left': x,
         'top': y + 15
@@ -1612,7 +1744,7 @@ function PlanningIssue_dragEnd()
     if (!this.dragging)
         return;
 
-    $('.date-tooltip').remove();
+    jQuery('.date-tooltip').remove();
 
     this.dragging = false;
     this.chart.dragging = false;
@@ -1624,16 +1756,15 @@ function PlanningIssue_dragEnd()
     }
 }
 
-PlanningIssue.prototype.updateRelations = function()
+PlanningIssue.prototype.updateRelations = function ()
 {
-    for (var t in this.relations)
+    var types = Object.keys(this.relations);
+    var k; // Key iterator
+    for (var iter = 0; iter < types.length; ++iter)
     {
-        for (var k in this.relations[t])
-        {
-            if (k == "length")
-                continue;
+        var t = types[iter];
+        for (k = 0; k < this.relations[t].length; ++k)
             this.relations[t][k].draw();
-        }
     }
 };
 
@@ -1642,7 +1773,7 @@ PlanningIssue.prototype.updateRelations = function()
  *
  * @return PlanningIssue Provides fluent interface
  */
-PlanningIssue.prototype.draw = function()
+PlanningIssue.prototype.draw = function ()
 {
     // If no geometry has been calcalated, do so and return to avoid recursion
     if (!this.geometry)
@@ -1686,7 +1817,7 @@ PlanningIssue.prototype.draw = function()
         if (!this.parent && this.children.length)
             type = "root";
         else if (this.parent && this.children.length)
-            type == "branch";
+            type = "branch";
         else
             type = "leaf";
 
@@ -1718,11 +1849,15 @@ PlanningIssue.prototype.draw = function()
         this.element.attr(this.geometry);
     }
 
+    var n; // Name holder
+    var max_length; // Maximum size of name
+    var text_color;
+    var attribs;
     if (!this.text)
     {
-        var text_color = this.chart.getTrackerAttrib(this.tracker, 'text_color');
-        var n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
-        var max_length = this.geometry['width'] / 8;
+        text_color = this.chart.getTrackerAttrib(this.tracker, 'text_color');
+        n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
+        max_length = this.geometry.width / 8;
         if (n.length > max_length)
             n = n.substring(0, max_length) + "...";
         this.text = this.chart.paper.text(
@@ -1730,12 +1865,12 @@ PlanningIssue.prototype.draw = function()
             this.geometry.y + (this.geometry.height / 2),
             n
         );
-        var attribs = {
+        attribs = {
             'font-size': 9,
             'cursor': 'move'
         };
         if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
-            attribs['stroke'] = text_color;
+            attribs.stroke = text_color;
         this.text.attr(attribs);
         this.text.mousemove(PlanningIssue_changeCursor, this);
         this.text.mouseout(PlanningIssue_closeTooltip, this);
@@ -1746,8 +1881,8 @@ PlanningIssue.prototype.draw = function()
     }
     else
     {
-        var n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
-        var max_length = this.geometry['width'] / 8;
+        n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
+        max_length = this.geometry.width / 8;
         if (n.length > max_length)
             n = n.substring(0, max_length) + "...";
         this.text.attr({
@@ -1778,27 +1913,30 @@ PlanningIssue.prototype.draw = function()
                 this.chart.elements.parent_links.push(this.parent_link);
             }
             else
+            {
                 this.parent_link.attr('path', path);
+            }
         }
     }
 
     return this;
-}
+};
 
 /** IssueRelation class definition */
 function PlanningIssueRelation(data, chart)
 {
-    this.from = data['from'];
-    this.to = data['to'];
-    this.type = data['type'];
-    this.id = data['id'];
-    this.delay = data['delay'] ? data['delay'] : 0;
+    this.from = data.from;
+    this.to = data.to;
+    this.type = data.type;
+    this.id = data.id;
+    this.delay = data.delay ? data.delay : 0;
 
     this.element = null;
     this.chart = chart ? chart : null;
 }
 
-PlanningIssueRelation.prototype.remove = function () {
+PlanningIssueRelation.prototype.remove = function ()
+{
     if (this.element)
     {
         this.element.remove();
@@ -1814,7 +1952,7 @@ function PlanningIssueRelation_click(e)
 
     this.chart.deleting = false;
     this.chart.elements.relations.attr('stroke-width', 2);
-    $('#redmine_planning_move_button').click();
+    jQuery('#redmine_planning_move_button').click();
     var type = this.type;
 
     var relation = this;
@@ -1833,7 +1971,7 @@ function PlanningIssueRelation_click(e)
  * 
  * @return PlanningIssueRelation Provides fluent interface
  */
-PlanningIssueRelation.prototype.setChart = function(chart, idx)
+PlanningIssueRelation.prototype.setChart = function (chart, idx)
 {
     this.chart = chart;
     this.idx = idx;
@@ -1845,7 +1983,7 @@ PlanningIssueRelation.prototype.setChart = function(chart, idx)
  * 
  * @return PlanningIssueRelation Provides fluent interface
  */
-PlanningIssueRelation.prototype.draw = function()
+PlanningIssueRelation.prototype.draw = function ()
 {
     // Add to chart if that hadn't been done yet
     if (!this.chart.relations[this.id])
@@ -1934,9 +2072,9 @@ PlanningIssueRelation.prototype.draw = function()
 
     // Form the path: start by moving to the proper location
     var action = "M";
-    var path = ""
+    var path = "";
     
-    for (var point_idx in points)
+    for (var point_idx = 0; point_idx < points.length; ++point_idx)
     {
         // Iterate over all points and add them to the path string
         path += action + points[point_idx][0] + "," + points[point_idx][1];
@@ -1957,17 +2095,19 @@ PlanningIssueRelation.prototype.draw = function()
         this.chart.elements.relations.push(this.element);
     }
     else
+    {
         this.element.attr('path', path);
+    }
 
 
     return this;
-}
+};
 
 function setFocusDate()
 {
-    var base_month = $('select#planning_focus_month').val();
-    var base_year = $('select#planning_focus_year').val();
-    var base_day = $('select#planning_focus_day').val();
+    var base_month = jQuery('select#planning_focus_month').val();
+    var base_year = jQuery('select#planning_focus_year').val();
+    var base_day = jQuery('select#planning_focus_day').val();
     var base_date = new Date();
 
     base_date.resetTime();
@@ -1979,21 +2119,23 @@ function setFocusDate()
     rm_chart.draw();
 }
 
-jQuery(function () {
-    var project = redmine_planning_settings['project'];
+jQuery(function ()
+{
+    var project = redmine_planning_settings.project;
         
     // Set up some callbacks
-    redmine_planning_settings['on_delete_relation'] = on_delete_relation;
-    redmine_planning_settings['on_create_relation'] = on_create_relation;
-    redmine_planning_settings['on_move_issues'] = on_move_issues;
+    redmine_planning_settings.on_delete_relation = on_delete_relation;
+    redmine_planning_settings.on_create_relation = on_create_relation;
+    redmine_planning_settings.on_move_issues = on_move_issues;
 
     // Create the chart
     rm_chart = new PlanningChart(redmine_planning_settings);
 
-    jQuery('#query_form').on('submit', function (e) {
+    jQuery('#query_form').on('submit', function (e)
+    {
         e.preventDefault();
 
-        var f = $(this);
+        var f = jQuery(this);
         var params = {};
         var values = f.serialize();
         var url = redmine_planning_settings.urls.get_issues;
@@ -2005,24 +2147,28 @@ jQuery(function () {
     jQuery('select#planning_focus_month').on('change', setFocusDate);
     jQuery('select#planning_focus_year').on('change', setFocusDate);
 
-    setTimeout(function () {
-        $('#query_form').submit();
+    setTimeout(function ()
+    {
+        jQuery('#query_form').submit();
     }, 500);
 
-    $('.redmine_planning_toolbar_button_set').buttonset();
+    jQuery('.redmine_planning_toolbar_button_set').buttonset();
 
-    $('#redmine_planning_back_button').click(function () {
+    jQuery('#redmine_planning_back_button').click(function ()
+    {
         rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(-16)));
         rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
         rm_chart.draw();
     });
-    $('#redmine_planning_forward_button').click(function () {
+    jQuery('#redmine_planning_forward_button').click(function ()
+    {
         rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(16)));
         rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
         rm_chart.draw();
     });
 
-    $('input[name=planning-mode]').click(function () {
+    jQuery('input[name=planning-mode]').click(function ()
+    {
         var button = jQuery(this);
         var type = button.data('type'); 
         if (button.hasClass('add_relation_button'))
@@ -2047,11 +2193,12 @@ jQuery(function () {
                     rm_chart.relating = null;
                     rm_chart.deleting = true;
                     rm_chart.elements.relations.attr('stroke-width', 4);
-            };
+            }
         }
     });
 
-    $('#redmine_planning_fullscreen_button').click(function () {
+    jQuery('#redmine_planning_fullscreen_button').click(function ()
+    {
         var button = jQuery(this);
         var fs = jQuery('#redmine_planning_fullscreen_overlay');
         var tb = jQuery('#redmine_planning_toolbar');
@@ -2079,22 +2226,26 @@ function updateIssues(json)
 {
     rm_chart.reset();
 
-    for (var k in json['issues'])
-        rm_chart.addIssue(new PlanningIssue(json['issues'][k]));
+    var iter;
+    for (iter = 0; iter < json.issues.length; ++iter)
+        rm_chart.addIssue(new PlanningIssue(json.issues[iter]));
 
-    for (var k in json['relations'])
-        rm_chart.addRelation(new PlanningIssueRelation(json['relations'][k], rm_chart));
+    for (iter = 0; iter < json.relations.length; ++iter)
+    {
+        rm_chart.addRelation(new PlanningIssueRelation(json.relations[iter], rm_chart));
+    }
 
     rm_chart.draw();
 }
 
 function on_delete_relation(relation)
 {
-    $.ajax({
+    jQuery.ajax({
         url: redmine_planning_settings.urls.root + 'relations/' + relation.id,
         data: {'authenticity_token': AUTH_TOKEN},
         type: 'DELETE',
-        success: function(result) {
+        success: function (result)
+        {
             relation.remove();
         },
         dataType: 'script'
@@ -2104,9 +2255,11 @@ function on_delete_relation(relation)
 function on_move_issues(issues)
 {
     var store = {"issues": issues, "relations": [], 'authenticity_token': AUTH_TOKEN};
-    $.post(redmine_planning_settings.urls.save_planning, store, function (response) {
-        for (var issue_id in response)
-            rm_chart.updateIssue(response);
+    jQuery.post(redmine_planning_settings.urls.save_planning, store, function (response)
+    {
+        var ikeys = Object.keys(response);
+        for (var iter = 0; iter < ikeys.length; ++iter)
+            rm_chart.updateIssue(response[ikeys[iter]]);
     }, "json");
 }
 
