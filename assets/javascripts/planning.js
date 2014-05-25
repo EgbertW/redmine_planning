@@ -17,8 +17,6 @@ You should have received a copy of the GNU General Public License
 along with redmine_planning. If not see <http://www.gnu.org/licenses/>.
 */
 
-var rm_chart;
-
 // Create the Object.keys function for those that do not support it (IE 8.0)
 if (!Object.keys)
 {
@@ -102,12 +100,12 @@ Date.prototype.toISODateString = function ()
 
 Date.prototype.resetTime = function ()
 {
-    this.setUTCHours(0);
+    this.setUTCHours(12);
     this.setUTCMinutes(0);
     this.setUTCSeconds(0);
 };
 
-function getToday()
+function rmp_getToday()
 {
     var today = new Date();
     today.resetTime();
@@ -118,12 +116,19 @@ function getToday()
     return today;
 }
 
+function rmp_clamp(val, min, max)
+{
+    if (jQuery.isArray(min))
+        return Math.max(min[0], Math.min(min[1], val));
+    return Math.max(min, Math.min(max, val));
+}
+
 PlanningIssue.prototype.showTooltip = function ()
 {
-    console.log('showing tooltip');
     var $ = jQuery;
+    var issue = this;
     
-    var d = $('.planning-tooltip');
+    var d = $('.planning_tooltip');
     if (d.length)
     {
         if (d.data('issue_id') == this.id)
@@ -149,8 +154,8 @@ PlanningIssue.prototype.showTooltip = function ()
 
     if (x < pos.left)
         x = pos.left;
-    
-    d.addClass('planning-tooltip')
+
+    d.addClass('planning_tooltip')
     .css({
         'left': x,
         'top': y
@@ -186,9 +191,10 @@ PlanningIssue.prototype.showTooltip = function ()
     );
 
     $('body').append(d);
+    d.show();
 
     // Add hover handler
-    d.on("mousemove", function ()
+    d.on("mouseenter", function ()
     {
         var tt = jQuery(this);
         tt.show();
@@ -200,18 +206,7 @@ PlanningIssue.prototype.showTooltip = function ()
         }
     }).on("mouseleave", function ()
     {
-        var tt = jQuery(this);
-        if (!tt.data('timeout'))
-        {
-            var to = setTimeout(function ()
-            {
-                tt.fadeOut(function ()
-                {
-                    jQuery(this).remove();
-                });
-            }, 1000);
-            tt.data('timeout', to);
-        }
+        issue.closeTooltip();
     });
 };
 
@@ -357,7 +352,7 @@ function PlanningChart(options)
     this.issues = {'length': 0};
     this.relations = {'length': 0};
     this.changed = {};
-    this.setBaseDate(this.options.base_date ? this.options.base_date : getToday());
+    this.setBaseDate(this.options.base_date ? this.options.base_date : rmp_getToday());
     this.container = jQuery('#' + this.options.target);
     var pos = this.container.position();
     this.container.css('margin-left', -pos.left);
@@ -752,21 +747,14 @@ PlanningChart.prototype.setBaseDate = function (date)
     this.base_date = date;
 };
 
-function clamp(val, min, max)
-{
-    if (jQuery.isArray(min))
-        return Math.max(min[0], Math.min(min[1], val));
-    return Math.max(min, Math.min(max, val));
-}
-
 PlanningChart.prototype.setViewBox = function (x, y, w, h)
 {
     // Set new viewbox
     if (!this.viewbox)
         this.viewbox = {};
 
-    this.viewbox.x = x = clamp(x, this.geometry_limits.x);
-    this.viewbox.y = y = clamp(y, this.geometry_limits.y);
+    this.viewbox.x = x = rmp_clamp(x, this.geometry_limits.x);
+    this.viewbox.y = y = rmp_clamp(y, this.geometry_limits.y);
     this.viewbox.w = w;
     this.viewbox.h = h;
 
@@ -978,6 +966,7 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
     for (var w = startDay; w <= endDay; w += 2)
     {
         var cur = new Date(base.getTime() + w * 86400000);
+        cur.resetTime();
 
         days = cur.subtract(base).days();
         x = this.options.margin.x + days * dw;
@@ -1003,7 +992,7 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
     });
 
     // Draw today
-    var t = getToday();
+    var t = rmp_getToday();
     days = t.subtract(base).days();
     x = this.options.margin.x + days * dw;
     var today = this.paper.path("M" + x + "," + -10000 + "L" + x + "," + 10000)
@@ -1171,6 +1160,8 @@ PlanningChart.prototype.updateIssue = function (id, response)
 
     var new_start_date = new Date(response[id].start_date);
     var new_due_date = new Date(response[id].due_date);
+    new_start_date.resetTime();
+    new_due_date.resetTime();
     
     var update = [false, false];
     if (new_start_date.getTime() != issue.start_date.getTime())
@@ -1203,7 +1194,9 @@ PlanningChart.prototype.updateIssue = function (id, response)
 function PlanningIssue(data)
 {
     this.start_date = new Date(data.start_date);
+    this.start_date.resetTime();
     this.due_date = new Date(data.due_date);
+    this.due_date.resetTime();
     this.name = data.name;
     this.description = data.description;
     this.project = data.project_name;
@@ -1282,7 +1275,7 @@ PlanningIssue.prototype.update = function ()
 {
     // Recalculate geometry
     var base = this.chart.base_date;
-    var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : getToday().subtract(base).days();
+    var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : rmp_getToday().subtract(base).days();
     var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
     this.geometry = {
         x: this.chart.options.margin.x + (startDay * this.chart.dayWidth()),
@@ -1307,7 +1300,7 @@ PlanningIssue.prototype.backup = function ()
     {
         this.orig_data = {'start_date': this.start_date, 'due_date': this.due_date};
         if (!this.orig_data.start_date || this.orig_data.start_date.getFullYear() == "1970")
-            this.orig_data.start_date = getToday();
+            this.orig_data.start_date = rmp_getToday();
         if (!this.orig_data.due_date || this.orig_data.due_date.getFullYear() == "1970")
             this.orig_data.due_date = this.orig_data.start_date.add(DateInterval.createDays(1));
     }
@@ -1681,7 +1674,7 @@ PlanningChart.prototype.eventToCanvas = function (e)
 
 PlanningIssue.prototype.closeTooltip = function (e)
 {
-    var tt = jQuery('.planning-tooltip');
+    var tt = jQuery('.planning_tooltip');
     if (!tt.data('timeout'))
     {
         var to = setTimeout(function ()
@@ -1816,7 +1809,7 @@ PlanningIssue.prototype.dragStart = function ()
     if (this.chart.relating || this.chart.deleting)
         return;
 
-    jQuery('.planning-tooltip').remove();
+    jQuery('.planning_tooltip').remove();
     this.dragging = true;
     this.chart.dragging = true;
     this.backup();
@@ -1852,11 +1845,11 @@ PlanningIssue.prototype.dragMove = function (dx, dy, x, y)
     else if (cursor == 'e-resize')
         tt_date = "<strong>" + chart.t('due_date') + ":</strong> " + this.chart.formatDate(this.orig_data.due_date.add(movement));
 
-    var tt = jQuery('.date-tooltip');
+    var tt = jQuery('.planning_date_tooltip');
     if (!tt.length)
     {
         tt = jQuery('<div></div>')
-            .addClass('date-tooltip')
+            .addClass('planning_date_tooltip')
             .appendTo('body');
     }
 
@@ -1931,7 +1924,7 @@ PlanningIssue.prototype.dragEnd = function ()
     if (!this.dragging)
         return;
 
-    jQuery('.date-tooltip').remove();
+    jQuery('.planning_date_tooltip').remove();
 
     this.dragging = false;
     this.chart.dragging = false;
@@ -2290,6 +2283,9 @@ PlanningIssueRelation.prototype.draw = function ()
     return this;
 };
 
+////////////////////////////////////
+// redmine_planning specific code //
+////////////////////////////////////
 function setFocusDate()
 {
     var base_month = jQuery('select#planning_focus_month').val();
@@ -2305,43 +2301,6 @@ function setFocusDate()
     rm_chart.setBaseDate(base_date);
     rm_chart.draw();
 }
-
-jQuery(function ()
-{
-    var project = redmine_planning_settings.project;
-        
-    // Set up some callbacks
-    redmine_planning_settings.on_delete_relation = on_delete_relation;
-    redmine_planning_settings.on_create_relation = on_create_relation;
-    redmine_planning_settings.on_move_issues = on_move_issues;
-
-    // Create the chart
-    rm_chart = new PlanningChart(redmine_planning_settings);
-
-    jQuery('#query_form').on('submit', function (e)
-    {
-        e.preventDefault();
-
-        var f = jQuery(this);
-        var params = {};
-        var values = f.serialize();
-        var url = redmine_planning_settings.urls.get_issues;
-        jQuery.getJSON(url, values, updateIssues);
-    });
-
-    //setFocusDate();
-    jQuery('select#planning_focus_day').on('change', setFocusDate);
-    jQuery('select#planning_focus_month').on('change', setFocusDate);
-    jQuery('select#planning_focus_year').on('change', setFocusDate);
-
-    setTimeout(function ()
-    {
-        jQuery('#query_form').submit();
-    }, 500);
-
-    //jQuery('.redmine_planning_toolbar_button_set').buttonset();
-
-}); 
 
 function updateIssues(json)
 {
@@ -2415,4 +2374,43 @@ function on_move_issues(issues)
             rm_chart.updateIssue(response[ikeys[iter]]);
     }, "json");
 }
+
+var rm_chart;
+
+jQuery(function ()
+{
+    var project = redmine_planning_settings.project;
+        
+    // Set up some callbacks
+    redmine_planning_settings.on_delete_relation = on_delete_relation;
+    redmine_planning_settings.on_create_relation = on_create_relation;
+    redmine_planning_settings.on_move_issues = on_move_issues;
+
+    // Create the chart
+    rm_chart = new PlanningChart(redmine_planning_settings);
+
+    jQuery('#query_form').on('submit', function (e)
+    {
+        e.preventDefault();
+
+        var f = jQuery(this);
+        var params = {};
+        var values = f.serialize();
+        var url = redmine_planning_settings.urls.get_issues;
+        jQuery.getJSON(url, values, updateIssues);
+    });
+
+    //setFocusDate();
+    jQuery('select#planning_focus_day').on('change', setFocusDate);
+    jQuery('select#planning_focus_month').on('change', setFocusDate);
+    jQuery('select#planning_focus_year').on('change', setFocusDate);
+
+    setTimeout(function ()
+    {
+        jQuery('#query_form').submit();
+    }, 500);
+
+    //jQuery('.redmine_planning_toolbar_button_set').buttonset();
+
+}); 
 

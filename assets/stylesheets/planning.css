@@ -59,7 +59,7 @@ svg text
     user-select: none;
 }
 
-div.planning-tooltip
+div.planning_tooltip
 {
     position:           absolute;
     border:             thin solid #aa0;
@@ -72,15 +72,15 @@ div.planning-tooltip
     padding:            5px;
 }
 
-div.planning-tooltip table
+div.planning_tooltip table
 {
     
 
 }
-div.planning-tooltip table,
-div.planning-tooltip table tr,
-div.planning-tooltip table th,
-div.planning-tooltip table td
+div.planning_tooltip table,
+div.planning_tooltip table tr,
+div.planning_tooltip table th,
+div.planning_tooltip table td
 {
     margin:             0;
     padding:            0;
@@ -88,7 +88,7 @@ div.planning-tooltip table td
     border:             none;
 }
 
-div.planning-tooltip table th
+div.planning_tooltip table th
 {
     font-weight:        bold;
     text-align:         right;
@@ -96,7 +96,7 @@ div.planning-tooltip table th
     width:              100px;
 }
 
-div.date-tooltip
+div.planning_date_tooltip
 {
     position:           absolute;
     border:             thin solid #aa0;
@@ -110,7 +110,7 @@ div.date-tooltip
     vertical-align:     middle;
 }
 
-div.date-tooltip p
+div.planning_date_tooltip p
 {
     padding:            0;
     margin:             0;
