@@ -118,14 +118,15 @@ function getToday()
     return today;
 }
 
-function showTooltip(issue)
+PlanningIssue.prototype.showTooltip = function ()
 {
+    console.log('showing tooltip');
     var $ = jQuery;
     
     var d = $('.planning-tooltip');
     if (d.length)
     {
-        if (d.data('issue_id') == issue.id)
+        if (d.data('issue_id') == this.id)
         {
             var to = d.data('timeout');
             if (to)
@@ -139,12 +140,12 @@ function showTooltip(issue)
     }
 
     d = $('<div></div>');
-    d.data('issue_id', issue.id);
+    d.data('issue_id', this.id);
 
-    var s = issue.chart.getScale();
-    var pos = issue.chart.chart_area.position();
-    var x = s[0] * (issue.geometry.x - issue.chart.viewbox.x) + pos.left;
-    var y = s[1] * (issue.geometry.y - issue.chart.viewbox.y + issue.chart.options.issue_height + issue.chart.options.spacing.y) + pos.top;
+    var s = this.chart.getScale();
+    var pos = this.chart.chart_area.position();
+    var x = s[0] * (this.geometry.x - this.chart.viewbox.x) + pos.left;
+    var y = s[1] * (this.geometry.y - this.chart.viewbox.y + this.chart.options.issue_height + this.chart.options.spacing.y) + pos.top;
 
     if (x < pos.left)
         x = pos.left;
@@ -156,32 +157,32 @@ function showTooltip(issue)
     });
 
     var parent_issue = 'none';
-    if (issue.parent_issue)
+    if (this.parent_issue)
     {
-        parent_issue = '<a href="/issues/' + issue.parent_issue.id + '" target="_blank">' +
-            issue.parent_issue.tracker + ' #' + issue.parent_issue.id + ': ' + issue.parent_issue.name +
+        parent_issue = '<a href="/issues/' + this.parent_issue.id + '" target="_blank">' +
+            this.parent_issue.tracker + ' #' + this.parent_issue.id + ': ' + this.parent_issue.name +
             '</a>';
     }
-    else if (issue.parent_id)
+    else if (this.parent_id)
     {
-        parent_issue = '<a href="/issues/' + issue.parent_id + '" target="_blank">' +
-            "#" + issue.parent_id + " (" + issue.t('unavailable') + ")";
+        parent_issue = '<a href="/issues/' + this.parent_id + '" target="_blank">' +
+            "#" + this.parent_id + " (" + this.t('unavailable') + ")";
     }
 
-    var desc = issue.description;
+    var desc = this.description;
     if (desc.length > 500)
         desc = desc.substr(0, 300);
 
     d.html(
         '<table>' +
-        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + issue.tracker + ' <a href="/issues/' + issue.id + '" target="_blank">#' + issue.id + '</a>: ' + issue.name + '</th></tr>' +
-        '<tr><th>' + issue.t('project') + ':</th><td><a href="/projects/' + issue.project_identifier + '" target="_blank">' + issue.project + '</a></td></tr>' + 
-        '<tr><th>' + issue.t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
-        '<tr><th>' + issue.t('start_date') + ':</th><td>' + issue.chart.formatDate(issue.start_date) + '</td></tr>' + 
-        '<tr><th>' + issue.t('due_date') + ':</th><td>' + issue.chart.formatDate(issue.due_date) + '</td></tr>' + 
-        '<tr><th>' + issue.t('leaf_task') + ':</th><td>' + (issue.leaf ? issue.t('yes') : issue.t('no')) + '</td></tr>' +
-        '<tr><th>' + issue.t('field_done_ratio') + ':</th><td>' + (issue.percent_done) + '%</td></tr>' +
-        '<tr><th>' + issue.t('description') + ':</th><td>' + desc + '</td></tr>' 
+        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="/issues/' + this.id + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +
+        '<tr><th>' + this.t('project') + ':</th><td><a href="/projects/' + this.project_identifier + '" target="_blank">' + this.project + '</a></td></tr>' + 
+        '<tr><th>' + this.t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
+        '<tr><th>' + this.t('start_date') + ':</th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
+        '<tr><th>' + this.t('due_date') + ':</th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
+        '<tr><th>' + this.t('leaf_task') + ':</th><td>' + (this.leaf ? this.t('yes') : this.t('no')) + '</td></tr>' +
+        '<tr><th>' + this.t('field_done_ratio') + ':</th><td>' + (this.percent_done) + '%</td></tr>' +
+        '<tr><th>' + this.t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
 
     $('body').append(d);
@@ -212,7 +213,7 @@ function showTooltip(issue)
             tt.data('timeout', to);
         }
     });
-}
+};
 
 /* Chart class definition */
 function PlanningChart(options)
@@ -1678,7 +1679,7 @@ PlanningChart.prototype.eventToCanvas = function (e)
     return [x, y];
 };
 
-function PlanningIssue_closeTooltip(e)
+PlanningIssue.prototype.closeTooltip = function (e)
 {
     var tt = jQuery('.planning-tooltip');
     if (!tt.data('timeout'))
@@ -1692,9 +1693,9 @@ function PlanningIssue_closeTooltip(e)
         }, 1000);
         tt.data('timeout', to);
     }
-}
+};
 
-function PlanningIssue_changeCursor(e, mouseX, mouseY)
+PlanningIssue.prototype.changeCursor = function (e, mouseX, mouseY)
 {
     if (this.dragging || this.chart.dragging)
         return;
@@ -1703,7 +1704,7 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
     {
         this.element.attr('cursor', 'move');
         this.text.attr('cursor', 'move');
-        showTooltip(this);
+        this.showTooltip();
         return;
     }
 
@@ -1756,11 +1757,11 @@ function PlanningIssue_changeCursor(e, mouseX, mouseY)
     {
         this.element.attr('cursor', 'move');
         this.text.attr('cursor', 'move');
-        showTooltip(this);
+        this.showTooltip();
     }
 }
 
-function PlanningIssue_click()
+PlanningIssue.prototype.click = function (e)
 {
     var chart = this.chart;
     if (!chart.relating)
@@ -1808,9 +1809,9 @@ function PlanningIssue_click()
         this.chart.options.on_create_relation(relation);
     else
         this.chart.draw();
-}
+};
 
-function PlanningIssue_dragStart()
+PlanningIssue.prototype.dragStart = function ()
 {
     if (this.chart.relating || this.chart.deleting)
         return;
@@ -1821,9 +1822,9 @@ function PlanningIssue_dragStart()
     this.backup();
     this.getRelations();
     this.calculateLimits(0);
-}
+};
 
-function PlanningIssue_dragMove(dx, dy, x, y)
+PlanningIssue.prototype.dragMove = function (dx, dy, x, y)
 {
     if (this.chart.relating || this.chart.deleting)
         return;
@@ -1920,9 +1921,9 @@ function PlanningIssue_dragMove(dx, dy, x, y)
 
     // Delete movement tracker
     delete this.chart.move_time;
-}
+};
 
-function PlanningIssue_dragEnd()
+PlanningIssue.prototype.dragEnd = function ()
 {
     if (this.chart.relating || this.chart.deleting)
         return;
@@ -1940,7 +1941,7 @@ function PlanningIssue_dragEnd()
         this.critical_lines.remove();
         delete this.critical_lines;
     }
-}
+};
 
 PlanningIssue.prototype.updateRelations = function ()
 {
@@ -2023,10 +2024,10 @@ PlanningIssue.prototype.draw = function ()
             'fill': fill
         });
 
-        this.element.mousemove(PlanningIssue_changeCursor, this);
-        this.element.mouseout(PlanningIssue_closeTooltip, this);
-        this.element.drag(PlanningIssue_dragMove, PlanningIssue_dragStart, PlanningIssue_dragEnd, this, this, this);
-        this.element.click(PlanningIssue_click, this);
+        this.element.mousemove(this.changeCursor, this);
+        this.element.mouseout(this.closeTooltip, this);
+        this.element.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
+        this.element.click(this.click, this);
 
         this.chart.elements.issues.push(this.element);
     }
@@ -2058,10 +2059,10 @@ PlanningIssue.prototype.draw = function ()
         if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
             attribs.stroke = text_color;
         this.text.attr(attribs);
-        this.text.mousemove(PlanningIssue_changeCursor, this);
-        this.text.mouseout(PlanningIssue_closeTooltip, this);
-        this.text.drag(PlanningIssue_dragMove, PlanningIssue_dragStart, PlanningIssue_dragEnd, this, this, this);
-        this.text.click(PlanningIssue_click, this);
+        this.text.mousemove(this.changeCursor, this);
+        this.text.mouseout(this.closeTooltip, this);
+        this.text.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
+        this.text.click(this.click, this);
 
         this.chart.elements.issue_texts.push(this.text);
     }
@@ -2131,7 +2132,7 @@ PlanningIssueRelation.prototype.remove = function ()
     this.chart.removeRelation(this.id);
 };
 
-function PlanningIssueRelation_click(e)
+PlanningIssueRelation.prototype.click = function (e)
 {
     if (!this.chart.deleting)
         return;
@@ -2150,7 +2151,7 @@ function PlanningIssueRelation_click(e)
         else
             this.remove();
     }
-}
+};
 
 /**
  * Set the chart element to which this relation is attached
@@ -2275,7 +2276,7 @@ PlanningIssueRelation.prototype.draw = function ()
         this.element = this.chart.paper.path(path);
         var stroke = this.chart.options.relation[this.type].stroke;
         this.element.attr(this.chart.getRelationAttributes(this.type));
-        this.element.click(PlanningIssueRelation_click, this);
+        this.element.click(this.click, this);
         var title = this.chart.t(this.type + "_description", "#" + this.from + ": '" + this.fromIssue.name + "'", "#" + this.to + ": '" + this.toIssue.name + "'", this.delay);
         this.element.attr('title', title);
         this.chart.elements.relations.push(this.element);
