@@ -268,6 +268,12 @@ function PlanningChart(options)
                 stroke:     '#080',
                 width:      3,
                 radius:     2
+            },
+            milestone: {
+                stroke:     '#222',
+                width:      3,
+                radius:     0,
+                fill:       '#666'
             }
         },
         relation: {
@@ -301,7 +307,7 @@ function PlanningChart(options)
     if (!options)
         options = {};
 
-    this.options = jQuery.extend(defaults, options);
+    this.options = this.extend(defaults, options);
 
     if (this.options.target.substr(0, 1) == '#')
         this.options.target = this.options.target.substr(1);
@@ -381,6 +387,36 @@ function PlanningChart(options)
         chart.resize.call(chart, evt);
     };
     jQuery(window).on('resize', resizeFn).resize();
+}
+
+PlanningChart.prototype.extend = function (target, data)
+{
+    // Iterate over all elements
+    for (var k in data)
+    {
+        // Safety check
+        if (!data.hasOwnProperty(k))
+            continue;
+
+        // Deep-merge objects
+        if (target[k] && typeof target[k] === 'object')
+        {
+            if (typeof data[k] !== 'object')
+                throw "Invalid value for key " + k;
+            this.extend(target[k], data[k]);
+        }
+        // Deep-merge arrays
+        else if (target[k] && jQuery.isArray(target[k]))
+        {
+            if (!jQuery.isArray(target[k]))
+                throw "Invalid value for key " + k;
+            this.extend(target[k], data[k]);
+        }
+        // Overwrite values
+        else
+            target[k] = data[k];
+    }
+    return target;
 }
 
 PlanningChart.prototype.mousewheel = function (e)
@@ -1214,6 +1250,8 @@ function PlanningIssue(data)
     this.chart = null;
     this.element = null;
     this.geometry = null;
+
+    this.milestone = false;
 }
 
 PlanningIssue.prototype.setChart = function (chart, idx)
@@ -1275,14 +1313,27 @@ PlanningIssue.prototype.update = function ()
 {
     // Recalculate geometry
     var base = this.chart.base_date;
-    var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : rmp_getToday().subtract(base).days();
-    var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
-    this.geometry = {
-        x: this.chart.options.margin.x + (startDay * this.chart.dayWidth()),
-        y: this.chart.options.margin.y + this.idx * (this.chart.options.issue_height + this.chart.options.spacing.y),
-        height: this.chart.options.issue_height,
-        width: this.chart.dayWidth() * nDays
-    };
+    if (this.milestone)
+    {
+        var endDay = this.due_date !== null ? this.due_date.subtract(base).days() : rmp_getToday().subtract(base).days();
+        this.geometry = {
+            x: this.chart.options.margin.x + (endDay * this.chart.dayWidth()),
+            y: this.chart.options.margin.y + this.idx * (this.chart.options.issue_height + this.chart.options.spacing.y),
+            height: this.chart.options.issue_height,
+            width: this.chart.dayWidth()
+        };
+    }
+    else
+    {
+        var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : rmp_getToday().subtract(base).days();
+        var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
+        this.geometry = {
+            x: this.chart.options.margin.x + (startDay * this.chart.dayWidth()),
+            y: this.chart.options.margin.y + this.idx * (this.chart.options.issue_height + this.chart.options.spacing.y),
+            height: this.chart.options.issue_height,
+            width: this.chart.dayWidth() * nDays
+        };
+    }
 
     this.chart.geometry_limits.x[0] = Math.min(this.geometry.x - this.chart.options.margin.x, this.chart.geometry_limits.x[0]);
     this.chart.geometry_limits.x[1] = Math.max(this.geometry.x - this.chart.options.margin.x, this.chart.geometry_limits.x[1]);
@@ -1736,12 +1787,12 @@ PlanningIssue.prototype.changeCursor = function (e, mouseX, mouseY)
     var relX = x - this.element.attr('x');
     var relY = y - this.element.attr('y');
 
-    if (relX <= this.chart.options.issue_resize_border)
+    if (!this.milestone && relX <= this.chart.options.issue_resize_border)
     {
         this.element.attr('cursor', 'w-resize');
         this.text.attr('cursor', 'w-resize');
     }
-    else if (relX >= this.element.attr('width') - this.chart.options.issue_resize_border)
+    else if (!this.milestone && relX >= this.element.attr('width') - this.chart.options.issue_resize_border)
     {
         this.element.attr('cursor', 'e-resize');
         this.text.attr('cursor', 'e-resize');
@@ -1998,17 +2049,34 @@ PlanningIssue.prototype.draw = function ()
             type = "root";
         else if (this.parent && this.children.length)
             type = "branch";
+        else if (this.milestone)
+            type = "milestone";
         else
             type = "leaf";
 
         var fill = this.chart.getTrackerAttrib(this.tracker, 'fill_color');
-        this.element = this.chart.paper.rect(
-            this.geometry.x,
-            this.geometry.y,
-            this.geometry.width,
-            this.geometry.height,
-            this.chart.options.type[type].radius
-        );
+        if (this.milestone)
+        {
+            this.element = this.chart.paper.path(
+                "M" + this.geometry.x + "," + (this.geometry.y + (this.geometry.height / 2)) +
+                "L" + (this.geometry.x + (this.geometry.width / 2)) + "," + this.geometry.y +
+                "L" + (this.geometry.x + this.geometry.width) + "," + (this.geometry.y + this.geometry.height / 2) +
+                "L" + (this.geometry.x + (this.geometry.width / 2)) + "," + (this.geometry.y + this.geometry.height) +
+                "L" + this.geometry.x + "," + (this.geometry.y + (this.geometry.height / 2))
+            );
+            if (this.chart.options.type[type].fill)
+                fill = this.chart.options.type[type].fill;
+        }
+        else
+        {
+            this.element = this.chart.paper.rect(
+                this.geometry.x,
+                this.geometry.y,
+                this.geometry.width,
+                this.geometry.height,
+                this.chart.options.type[type].radius
+            );
+        }
 
         this.element.toFront();
         this.element.attr({
@@ -2026,7 +2094,20 @@ PlanningIssue.prototype.draw = function ()
     }
     else
     {
-        this.element.attr(this.geometry);
+        if (this.milestone)
+        {
+            this.element.attr('path',
+                "M" + this.geometry.x + "," + (this.geometry.y + (this.geometry.height / 2)) +
+                "L" + (this.geometry.x + (this.geometry.width / 2)) + "," + this.geometry.y +
+                "L" + (this.geometry.x + this.geometry.width) + "," + (this.geometry.y + this.geometry.height / 2) +
+                "L" + (this.geometry.x + (this.geometry.width / 2)) + "," + (this.geometry.y + this.geometry.height) +
+                "L" + this.geometry.x + "," + (this.geometry.y + (this.geometry.height / 2))
+            );
+        }
+        else
+        {
+            this.element.attr(this.geometry);
+        }
     }
 
     var n; // Name holder
