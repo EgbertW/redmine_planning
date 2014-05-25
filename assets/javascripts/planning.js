@@ -496,14 +496,14 @@ PlanningChart.prototype.setupDOMElements = function ()
                 id: 'planning_back_button',
                 data: {type: 'scroll', days: -16, issues: 0},
                 icon: 'ion-skip-backward',
-                title: this.t('planning_back_16_days')
+                title: this.t('back_16_days')
             },
             {
                 type: 'button',
                 id: 'planning_forward_button',
                 data: {type: 'scroll', days: 16, issues: 0},
                 icon: 'ion-skip-forward',
-                title: this.t('planning_forward_16_days')
+                title: this.t('forward_16_days')
             }
         ],
         [
@@ -513,49 +513,49 @@ PlanningChart.prototype.setupDOMElements = function ()
                 icon: 'ion-arrow-move',
                 data: {type: 'move'},
                 default: true,
-                title: this.t('planning_move')
+                title: this.t('move')
             },
             {
                 type: 'radio',
                 id: 'planning_precedes_button',
                 data: {type: 'add_relation', subtype: 'precedes'},
                 icon: 'ion-arrow-right-c',
-                title: this.t('planning_add_precedes')
+                title: this.t('add_precedes')
             },
             {
                 type: 'radio',
                 id: 'planning_blocks_button',
                 data: {type: 'add_relation', subtype: 'blocks'},
                 icon: 'ion-arrow-return-right',
-                title: this.t('planning_add_blocks')
+                title: this.t('add_blocks')
             },
             {
                 type: 'radio',
                 id: 'planning_duplicates_button',
                 data: {type: 'add_relation', subtype: 'duplicates'},
                 icon: 'ion-loop',
-                title: this.t('planning_add_duplicates')
+                title: this.t('add_duplicates')
             },
             {
                 type: 'radio',
                 id: 'planning_relates_button',
                 data: {type: 'add_relation', subtype: 'relates'},
                 icon: 'ion-arrow-swap',
-                title: this.t('planning_add_relates')
+                title: this.t('add_relates')
             },
             {
                 type: 'radio',
                 id: 'planning_copied_to_button',
                 data: {type: 'add_relation', subtype: 'copied_to'},
                 icon: 'ion-ios7-copy',
-                title: this.t('planning_add_copied_to')
+                title: this.t('add_copied_to')
             },
             {
                 type: 'delete',
                 id: 'planning_delete_button',
                 data: {type: 'delete'},
                 icon: 'ion-close-round',
-                title: this.t('planning_delete_relation')
+                title: this.t('delete_relation')
             }
         ],
         [
@@ -564,7 +564,7 @@ PlanningChart.prototype.setupDOMElements = function ()
                 id: 'planning_fullscreen_button',
                 data: {type: 'fullscreen'},
                 icon: ['ion-arrow-expand', 'ion-arrow-shrink'],
-                title: this.t('planning_fullscreen')
+                title: this.t('fullscreen')
             }
         ]
     ];
