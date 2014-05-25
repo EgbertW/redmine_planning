@@ -142,7 +142,7 @@ function showTooltip(issue)
     d.data('issue_id', issue.id);
 
     var s = issue.chart.getScale();
-    var pos = $('#' + issue.chart.options.target).position();
+    var pos = issue.chart.chart_area.position();
     var x = s[0] * (issue.geometry.x - issue.chart.viewbox.x) + pos.left;
     var y = s[1] * (issue.geometry.y - issue.chart.viewbox.y + issue.chart.options.issue_height + issue.chart.options.spacing.y) + pos.top;
 
@@ -353,7 +353,6 @@ function PlanningChart(options)
     }
 
     var relating = null;
-
     this.issues = {'length': 0};
     this.relations = {'length': 0};
     this.changed = {};
@@ -364,97 +363,113 @@ function PlanningChart(options)
     this.container.css('margin-right', -pos.left);
     var chart = this;
 
-    var resizeFn = function ()
-    {
-        var fs = jQuery('#redmine_planning_fullscreen_overlay');
-        var mb = 200;
-        var w;
-        var h;
-        if (fs.length)
-        {
-            var tb = jQuery('#redmine_planning_toolbar').outerHeight(true);
-            var wh = jQuery(window).innerHeight();
-            h = wh - tb - 10;
-            w = jQuery(window).innerWidth() - 2;
-            mb = 0;
-        }
-        else
-        {
-            var pos = chart.container.position();
-            var footHeight = jQuery('#footer').outerHeight();
-            var contentPadding = parseInt(jQuery('#content').css('padding-bottom'), 10);
-            h = Math.max(500, jQuery(window).innerHeight() - pos.top - footHeight - contentPadding);
-            w = jQuery(window).innerWidth() - 2; //- (2 * pos.left);
-        }
-
-        chart.container.css({
-            'width': w,
-            'height': h,
-            'margin-bottom': mb
-        });
-        if (chart.paper)
-        {
-            // Adjust viewbox to keep the same scale
-            var w_factor = w / chart.paper.width;
-            var h_factor = h / chart.paper.height;
-            chart.paper.setSize(w, h);
-            chart.setViewBox(chart.viewbox.x, chart.viewbox.y, chart.viewbox.w * w_factor, chart.viewbox.h * h_factor);
-        }
-    };
-    jQuery(window).on('resize', resizeFn).resize();
-    
-    this.paper = Raphael(this.options.target);
-    var w = this.container.innerWidth();
-    var h = this.container.innerHeight();
+    // Set up the GUI
+    this.setupDOMElements();
+    this.paper = Raphael(this.chart_area.attr('id'));
+    var w = this.chart_area.innerWidth();
+    var h = this.chart_area.innerHeight();
     this.geometry_limits = {x: [-w / 2, -w / 2], y: [0, 0]};
     this.setViewBox(Math.round(w / -2), 0, w, h);
     this.addBackground();
-    this.container.on('mousewheel', function (e)
+
+    // Scroll or zoom when using the mouse wheel
+    var mouseFn = function (evt)
     {
-        // Try to avoid default browser scrolling behavior. However, in Chrome,
-        // this doesn't seem to work. That is why, in addition to Ctrl+Scroll ->
-        // Zoom, Alt+Scroll also works.
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        chart.mousewheel.call(chart, evt);
+    }
+    this.chart_area.on('mousewheel', mouseFn);
 
-        if (!e.ctrlKey && !e.altKey)
-        {
-            var v = e.deltaY > 0 ? -1 : (e.deltaY < 0 ? 1 : 0);
-            var h = e.deltaX > 0 ? 1 : (e.deltaX < 0 ? -1 : 0);
-
-            var day_factor = Math.max(1, Math.pow(2, (-rm_chart.options.zoom_level) + 1));
-            var new_x = chart.viewbox.x + h * chart.dayWidth() * day_factor;
-            var new_y = chart.viewbox.y + v * (chart.options.issue_height + chart.options.spacing.y) * 1;
-
-            chart.setViewBox(new_x, new_y, chart.viewbox.w, chart.viewbox.h);
-        }
-        else
-        {
-            var zoom = rm_chart.options.zoom_level;
-
-            if (e.deltaY > 0)
-                ++zoom;
-            else if (e.deltaY < 0)
-                --zoom;
-            var min_zoom_level = -2;
-            var zoom_upper_limit = 3;
-            var zoom_factor = 1.5;
-            zoom = Math.min(Math.max(rm_chart.options.min_zoom_level, zoom), rm_chart.options.max_zoom_level);
-            rm_chart.options.zoom_level = zoom;
-
-            // Determine new width and height
-            var new_w = Math.round(rm_chart.container.width() / Math.pow(rm_chart.options.zoom_factor, zoom));
-            var new_h = Math.round(rm_chart.container.height() / Math.pow(rm_chart.options.zoom_factor, zoom));
-
-            // We want the center to go to the point where the scroll button was hit
-            var center_pos = rm_chart.clientToCanvas(e.offsetX, e.offsetY);
-            var cx = new_w < rm_chart.viewbox.w ? Math.round(center_pos[0] - new_w / 2) : rm_chart.viewbox.x;
-            var cy = new_h < rm_chart.viewbox.h ? Math.round(center_pos[1] - new_h / 2) : rm_chart.viewbox.y;
-
-            rm_chart.setViewBox(cx, cy, new_w, new_h);
-        }
-    });
+    // Resize the planning chart when the window resizes
+    var resizeFn = function (evt)
+    {
+        chart.resize.call(chart, evt);
+    };
+    jQuery(window).on('resize', resizeFn).resize();
 }
+
+PlanningChart.prototype.mousewheel = function (e)
+{
+    // Try to avoid default browser scrolling behavior. However, in Chrome,
+    // this doesn't seem to work. That is why, in addition to Ctrl+Scroll ->
+    // Zoom, Alt+Scroll also works.
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if (!e.ctrlKey && !e.altKey)
+    {
+        var v = e.deltaY > 0 ? -1 : (e.deltaY < 0 ? 1 : 0);
+        var h = e.deltaX > 0 ? 1 : (e.deltaX < 0 ? -1 : 0);
+
+        var day_factor = Math.max(1, Math.pow(2, (-this.options.zoom_level) + 1));
+        var new_x = this.viewbox.x + h * this.dayWidth() * day_factor;
+        var new_y = this.viewbox.y + v * (this.options.issue_height + this.options.spacing.y) * 1;
+
+        this.setViewBox(new_x, new_y, this.viewbox.w, this.viewbox.h);
+    }
+    else
+    {
+        var zoom = this.options.zoom_level;
+
+        if (e.deltaY > 0)
+            ++zoom;
+        else if (e.deltaY < 0)
+            --zoom;
+        var min_zoom_level = -2;
+        var zoom_upper_limit = 3;
+        var zoom_factor = 1.5;
+        zoom = Math.min(Math.max(this.options.min_zoom_level, zoom), this.options.max_zoom_level);
+        this.options.zoom_level = zoom;
+
+        // Determine new width and height
+        var new_w = Math.round(this.chart_area.width() / Math.pow(this.options.zoom_factor, zoom));
+        var new_h = Math.round(this.chart_area.height() / Math.pow(this.options.zoom_factor, zoom));
+
+        // We want the center to go to the point where the scroll button was hit
+        var center_pos = this.clientToCanvas(e.offsetX, e.offsetY);
+        var cx = new_w < this.viewbox.w ? Math.round(center_pos[0] - new_w / 2) : this.viewbox.x;
+        var cy = new_h < this.viewbox.h ? Math.round(center_pos[1] - new_h / 2) : this.viewbox.y;
+
+        this.setViewBox(cx, cy, new_w, new_h);
+    }
+};
+
+PlanningChart.prototype.resize = function ()
+{
+    var fs = jQuery('#planning_fullscreen_overlay');
+    var mb = 200;
+    var w;
+    var h;
+    if (fs.length)
+    {
+        var tb = jQuery('#planning_toolbar').outerHeight(true);
+        var wh = jQuery(window).innerHeight();
+        h = wh - tb - 10;
+        w = jQuery(window).innerWidth() - 2;
+        mb = 0;
+    }
+    else
+    {
+        var pos = this.chart_area.position();
+        var footHeight = jQuery('#footer').outerHeight();
+        var contentPadding = parseInt(jQuery('#content').css('padding-bottom'), 10);
+        h = Math.max(500, jQuery(window).innerHeight() - pos.top - footHeight - contentPadding);
+        w = jQuery(window).innerWidth() - 2;
+    }
+
+    this.chart_area.css({
+        'width': w,
+        'height': h,
+        'margin-bottom': mb
+    });
+    if (this.paper)
+    {
+        // Adjust viewbox to keep the same scale
+        var w_factor = w / this.paper.width;
+        var h_factor = h / this.paper.height;
+        this.paper.setSize(w, h);
+        this.setViewBox(this.viewbox.x, this.viewbox.y, this.viewbox.w * w_factor, this.viewbox.h * h_factor);
+    }
+};
 
 PlanningChart.prototype.t = function t(str)
 {
@@ -470,6 +485,205 @@ PlanningChart.prototype.setMonthNames = function (names, abbreviations)
 {
     this.options.month_names = jQuery.extend({}, names);
     this.options.abbr_month_names = jQuery.extend({}, abbreviations);
+};
+
+PlanningChart.prototype.setupDOMElements = function ()
+{
+    var buttons = [
+        [
+            {
+                type: 'button',
+                id: 'planning_back_button',
+                data: {type: 'scroll', days: -16, issues: 0},
+                icon: 'ion-skip-backward',
+                title: this.t('planning_back_16_days')
+            },
+            {
+                type: 'button',
+                id: 'planning_forward_button',
+                data: {type: 'scroll', days: 16, issues: 0},
+                icon: 'ion-skip-forward',
+                title: this.t('planning_forward_16_days')
+            }
+        ],
+        [
+            {
+                type: 'radio',
+                id: 'planning_move_button',
+                icon: 'ion-arrow-move',
+                data: {type: 'move'},
+                default: true,
+                title: this.t('planning_move')
+            },
+            {
+                type: 'radio',
+                id: 'planning_precedes_button',
+                data: {type: 'add_relation', subtype: 'precedes'},
+                icon: 'ion-arrow-right-c',
+                title: this.t('planning_add_precedes')
+            },
+            {
+                type: 'radio',
+                id: 'planning_blocks_button',
+                data: {type: 'add_relation', subtype: 'blocks'},
+                icon: 'ion-arrow-return-right',
+                title: this.t('planning_add_blocks')
+            },
+            {
+                type: 'radio',
+                id: 'planning_duplicates_button',
+                data: {type: 'add_relation', subtype: 'duplicates'},
+                icon: 'ion-loop',
+                title: this.t('planning_add_duplicates')
+            },
+            {
+                type: 'radio',
+                id: 'planning_relates_button',
+                data: {type: 'add_relation', subtype: 'relates'},
+                icon: 'ion-arrow-swap',
+                title: this.t('planning_add_relates')
+            },
+            {
+                type: 'radio',
+                id: 'planning_copied_to_button',
+                data: {type: 'add_relation', subtype: 'copied_to'},
+                icon: 'ion-ios7-copy',
+                title: this.t('planning_add_copied_to')
+            },
+            {
+                type: 'delete',
+                id: 'planning_delete_button',
+                data: {type: 'delete'},
+                icon: 'ion-close-round',
+                title: this.t('planning_delete_relation')
+            }
+        ],
+        [
+            {
+                type: 'button',
+                id: 'planning_fullscreen_button',
+                data: {type: 'fullscreen'},
+                icon: ['ion-arrow-expand', 'ion-arrow-shrink'],
+                title: this.t('planning_fullscreen')
+            }
+        ]
+    ];
+
+    var $ = jQuery;
+    this.toolbar = $('<div></div>').css({
+        textAlign: 'center',
+        width: '100%'
+    }).attr('id', 'planning_toolbar');
+
+    this.chart_area = $('<div></div>')
+        .attr('id', 'planning_chart');
+
+    var i, j, button, label, set, icon;
+    this.buttons = {};
+    for (i = 0; i < buttons.length; ++i)
+    {
+        set = $('<div></div>').addClass('planning_toolbar_button_set');
+        for (j = 0; j < buttons[i].length; ++j)
+        {
+            if (buttons[i][j].type === "button")
+            {
+                icon = buttons[i][j].icon;
+                if (jQuery.isArray(icon))
+                    icon = icon[0];
+                button = $('<button></button>')
+                    .attr('id', buttons[i][j].id)
+                    .attr('title', buttons[i][j].title)
+                    .addClass(icon)
+                    .addClass('planning_button');
+                if (buttons[i][j].data)
+                    button.data(buttons[i][j].data);
+                set.append(button);
+                buttons[i][j].button = button;
+            }
+            else
+            {
+                button = $('<input />')
+                    .attr('id', buttons[i][j].id)
+                    .attr('type', 'radio')
+                    .attr('name', 'planning-bs-' + i)
+                    .addClass('planning_button');
+                if (buttons[i][j].data)
+                    button.data(buttons[i][j].data);
+                label = $('<label></label>')
+                    .attr('for', buttons[i][j].id)
+                    .attr('title', buttons[i][j].title)
+                    .addClass(buttons[i][j].icon);
+                if (buttons[i][j].default)
+                    button.prop('checked', true);
+                set.append(button, label);
+                buttons[i][j].button = button;
+                buttons[i][j].label = label;
+            }
+            this.buttons[buttons[i][j].id] = buttons[i][j];
+        }
+        this.toolbar.append(set);
+        set.buttonset();
+    }
+
+    this.container.append(this.toolbar, this.chart_area);
+
+    var chart = this;
+    jQuery('.planning_button').click(function ()
+    {
+        var button = jQuery(this);
+        var type = button.data('type'); 
+        switch (type)
+        {
+            case "add_relation":
+                chart.elements.relations.attr('stroke-width', 2);
+                chart.deleting = null;
+                chart.createRelation(button.data('subtype'));
+                break;
+            case "move":
+                chart.deleting = chart.relating = null;
+                chart.elements.relations.attr('stroke-width', 2);
+                break;
+            case "delete":
+                chart.relating = null;
+                chart.deleting = true;
+                chart.elements.relations.attr('stroke-width', 4);
+                break;
+            case "scroll":
+                chart.setBaseDate(chart.base_date.add(DateInterval.createDays(button.data('days'))));
+                chart.viewbox.y += button.data('issues') * chart.options.issue_height;
+                chart.setViewBox(Math.round(chart.viewbox.w / -2), chart.viewbox.y, chart.viewbox.w, chart.viewbox.h);
+                chart.draw();
+                break;
+            case "fullscreen":
+                chart.toggleFullscreen();
+        }
+    });
+};
+
+PlanningChart.prototype.toggleFullscreen = function ()
+{
+    var def = this.buttons['planning_fullscreen_button'];
+    var button = def.button;
+
+    var fs = jQuery('#planning_fullscreen_overlay');
+    var tb = jQuery('#planning_toolbar');
+    var ch = jQuery('#planning_chart');
+
+    if (fs.length > 0)
+    {
+        fs.children().removeClass('fullscreen');
+
+        this.container.append(tb, ch); 
+        fs.remove();
+        button.removeClass(def.icon[1]).addClass(def.icon[0]);
+    }
+    else
+    {
+        fs = jQuery('<div></div>').attr('id', 'planning_fullscreen_overlay');
+        fs.appendTo('body').append(tb, ch).children().addClass('fullscreen');
+        button.removeClass(def.icon[0]).addClass(def.icon[1]);
+    }
+    jQuery(window).resize();
 };
 
 PlanningChart.prototype.getTrackerAttrib = function (tracker, attrib)
@@ -663,8 +877,8 @@ PlanningChart.prototype.addRelation = function (relation)
     this.relations[relation.id] = relation;
 
     // Set up additional info
-    relation.fromIssue = this.issues[relation.from].addRelation(this);
-    relation.toIssue = this.issues[relation.to].addRelation(this);
+    relation.fromIssue = this.issues[relation.from].addRelation(relation);
+    relation.toIssue = this.issues[relation.to].addRelation(relation);
     return relation;
 };
 
@@ -675,19 +889,24 @@ PlanningChart.prototype.removeRelation = function (id)
         if (this.relations[id].element)
             this.relations[id].element.remove();
         var iter;
-        for (iter = 0; iter < this.relations[id].fromIssue.relations.outgoing.length; ++iter)
+        var incoming = this.relations[id].fromIssue.relations;
+        for (iter = 0; iter < incoming.outgoing.length; ++iter)
         {
-            if (this.relations[id].fromIssue.relations.outgoing[iter].id === id)
+            if (incoming.outgoing[iter].id === id)
             {
-                delete this.relations[id].fromIssue.relations.outgoing[iter];
+                delete incoming.outgoing[iter];
+                incoming.outgoing.splice(iter, 1);
                 break;
             }
         }
-        for (iter = 0; iter < this.relations[id].toIssue.relations.incoming; ++iter)
+
+        var outgoing = this.relations[id].toIssue.relations;
+        for (iter = 0; iter < outgoing.incoming.length; ++iter)
         {
-            if (this.relations[id].toIssue.relations.incoming[iter].id === id)
+            if (outgoing.incoming[iter].id === id)
             {
-                delete this.relations[id].toIssue.relations.incoming[iter];
+                delete outgoing.incoming[iter];
+                outgoing.incoming.splice(iter, 1);
                 break;
             }
         }
@@ -818,8 +1037,8 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
 
 PlanningChart.prototype.draw = function (redraw)
 {
-    var w = this.container.width();
-    var h = this.container.height();
+    var w = this.chart_area.width();
+    var h = this.chart_area.height();
     this.geometry_limits = {'x': [-w / 2, -w / 2], 'y': [0, 0]};
     this.drawHeader();
 
@@ -848,8 +1067,8 @@ PlanningChart.prototype.draw = function (redraw)
 PlanningChart.prototype.getScale = function ()
 {
     return [
-        this.container.width() / this.viewbox.w,
-        this.container.height() / this.viewbox.h
+        this.chart_area.width() / this.viewbox.w,
+        this.chart_area.height() / this.viewbox.h
     ];
 };
 
@@ -1161,7 +1380,7 @@ PlanningIssue.prototype.move = function (arg1, arg2)
         r.draw();
     }
 
-    for (iter = 0; iter < this.relations.incoming; ++iter)
+    for (iter = 0; iter < this.relations.incoming.length; ++iter)
     {
         r = this.relations.incoming[iter];
         switch (r.type)
@@ -1447,11 +1666,11 @@ PlanningChart.prototype.eventToCanvas = function (e)
     var s = this.getScale();
 
     // Get position of container
-    var cp = this.container.position();
+    var cp = this.chart_area.position();
 
     // Get margin of container, in integral pixels
-    var mx = parseInt(this.container.css('margin-left'), 10);
-    var my = parseInt(this.container.css('margin-top'), 10);
+    var mx = parseInt(this.chart_area.css('margin-left'), 10);
+    var my = parseInt(this.chart_area.css('margin-top'), 10);
 
     // Determine position of mouse cursor
     var x = Math.round((e.clientX - cp.left - mx) / s[0] + this.viewbox.x);
@@ -1589,39 +1808,6 @@ function PlanningIssue_click()
         this.chart.options.on_create_relation(relation);
     else
         this.chart.draw();
-}
-
-function on_create_relation(relation)
-{
-    jQuery.post(redmine_planning_settings.urls.root + 'issues/' + relation.from + '/rmpcreate', {
-        'authenticity_token': AUTH_TOKEN,
-        'commit': 'Add',
-        'relation': {
-            'issue_to_id': relation.to,
-            'relation_type': relation.type,
-            'delay': relation.delay
-        },
-        'utf': '✓'
-    }, function (response)
-    {
-        if (!response.success)
-            return;
-
-        // Update the id
-        relation.id = response.relation.id;
-        
-        // Draw the relation
-        relation.draw();
-    }, "json")
-    .error(function (response)
-    {
-        relation.remove();
-        response = jQuery.parseJSON(response.responseText);
-        if (response)
-            alert(response.errors[0]);
-        else
-            alert("Unexpected error in adding relation");
-    });
 }
 
 function PlanningIssue_dragStart()
@@ -2142,7 +2328,7 @@ jQuery(function ()
         jQuery.getJSON(url, values, updateIssues);
     });
 
-    setFocusDate();
+    //setFocusDate();
     jQuery('select#planning_focus_day').on('change', setFocusDate);
     jQuery('select#planning_focus_month').on('change', setFocusDate);
     jQuery('select#planning_focus_year').on('change', setFocusDate);
@@ -2152,74 +2338,8 @@ jQuery(function ()
         jQuery('#query_form').submit();
     }, 500);
 
-    jQuery('.redmine_planning_toolbar_button_set').buttonset();
+    //jQuery('.redmine_planning_toolbar_button_set').buttonset();
 
-    jQuery('#redmine_planning_back_button').click(function ()
-    {
-        rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(-16)));
-        rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
-        rm_chart.draw();
-    });
-    jQuery('#redmine_planning_forward_button').click(function ()
-    {
-        rm_chart.setBaseDate(rm_chart.base_date.add(DateInterval.createDays(16)));
-        rm_chart.setViewBox(Math.round(rm_chart.viewbox.w / -2), rm_chart.viewbox.y, rm_chart.viewbox.w, rm_chart.viewbox.h);
-        rm_chart.draw();
-    });
-
-    jQuery('input[name=planning-mode]').click(function ()
-    {
-        var button = jQuery(this);
-        var type = button.data('type'); 
-        if (button.hasClass('add_relation_button'))
-        {
-            if (rm_chart.deleting)
-            {
-                rm_chart.elements.relations.attr('stroke-width', 2);
-                rm_chart.deleting = null;
-            }
-            rm_chart.createRelation(type);
-        }
-        else
-        {
-            rm_chart.relating = null;
-            switch (type)
-            {
-                case "move":
-                    rm_chart.deleting = rm_chart.relating = null;
-                    rm_chart.elements.relations.attr('stroke-width', 2);
-                    break;
-                case "delete":
-                    rm_chart.relating = null;
-                    rm_chart.deleting = true;
-                    rm_chart.elements.relations.attr('stroke-width', 4);
-            }
-        }
-    });
-
-    jQuery('#redmine_planning_fullscreen_button').click(function ()
-    {
-        var button = jQuery(this);
-        var fs = jQuery('#redmine_planning_fullscreen_overlay');
-        var tb = jQuery('#redmine_planning_toolbar');
-        var ch = jQuery('#redmine_planning_chart');
-        var query_form = jQuery('#query_form');
-
-        if (fs.length > 0)
-        {
-            fs.children().removeClass('fullscreen');
-            query_form.after(tb, ch); 
-            fs.remove();
-            button.removeClass('ion-arrow-shrink').addClass('ion-arrow-expand');
-        }
-        else
-        {
-            fs = jQuery('<div></div>').attr('id', 'redmine_planning_fullscreen_overlay');
-            fs.appendTo('body').append(tb, ch).children().addClass('fullscreen');
-            button.removeClass('ion-arrow-expand').addClass('ion-arrow-shrink');
-        }
-        jQuery(window).resize();
-    });
 }); 
 
 function updateIssues(json)
@@ -2231,12 +2351,44 @@ function updateIssues(json)
         rm_chart.addIssue(new PlanningIssue(json.issues[iter]));
 
     for (iter = 0; iter < json.relations.length; ++iter)
-    {
         rm_chart.addRelation(new PlanningIssueRelation(json.relations[iter], rm_chart));
-    }
 
     rm_chart.draw();
 }
+
+function on_create_relation(relation)
+{
+    jQuery.post(redmine_planning_settings.urls.root + 'issues/' + relation.from + '/rmpcreate', {
+        'authenticity_token': AUTH_TOKEN,
+        'commit': 'Add',
+        'relation': {
+            'issue_to_id': relation.to,
+            'relation_type': relation.type,
+            'delay': relation.delay
+        },
+        'utf': '✓'
+    }, function (response)
+    {
+        if (!response.success)
+            return;
+
+        // Update the id
+        relation.id = response.relation.id;
+        
+        // Draw the relation
+        relation.draw();
+    }, "json")
+    .error(function (response)
+    {
+        relation.remove();
+        response = jQuery.parseJSON(response.responseText);
+        if (response)
+            alert(response.errors[0]);
+        else
+            alert("Unexpected error in adding relation");
+    });
+}
+
 
 function on_delete_relation(relation)
 {

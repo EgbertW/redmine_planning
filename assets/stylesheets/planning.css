@@ -116,19 +116,19 @@ div.date-tooltip p
     margin:             0;
 }
 
-.redmine_planning_toolbar_button_set
+.planning_toolbar_button_set
 {
     display:            inline-block;
     font-size:          0;
 }
 
-#redmine_planning_toolbar
+#planning_toolbar
 {
     margin:             5px 0;
 }
 
-#redmine_planning_toolbar button,
-#redmine_planning_toolbar label
+#planning_toolbar button,
+#planning_toolbar label
 {
     font-size:          20pt;
     height:             32px;
@@ -136,7 +136,7 @@ div.date-tooltip p
     padding:            0;
 }
 
-#redmine_planning_fullscreen_overlay
+#planning_fullscreen_overlay
 {
     position:           fixed;
     top:                0;

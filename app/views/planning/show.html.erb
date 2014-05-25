@@ -48,32 +48,8 @@
                        :class => 'icon icon-save' %>
 <% end %>
 </p>
-<div id="redmine_planning_panel_1" style="width: 100%; text-align: center;">
-<%= l(:planning_center_on) %> 
-<%= select_day(@gantt.date_from, :prefix => "planning_focus_day", :discard_type => true) %>
-<%= select_month(@gantt.month_from, :prefix => "planning_focus_month", :discard_type => true) %>
-<%= select_year(@gantt.year_from, :prefix => "planning_focus_year", :discard_type => true) %>
-</div>
 <% end %>
 
-<div id="redmine_planning_toolbar" style="width: 100%; text-align: center;">
-    <div class="redmine_planning_toolbar_button_set">
-        <button id="redmine_planning_back_button" class="ion-skip-backward" title="<%= l(:planning_back_16_days) %>"></button>
-        <button id="redmine_planning_forward_button" class="ion-skip-forward" title="<%= l(:planning_forward_16_days) %>"></button>
-    </div>
-    <div class="redmine_planning_toolbar_button_set redmine_planning_mode">
-        <input type="radio" id="redmine_planning_move_button" name="planning-mode" data-type="move" checked="checked" /><label for="redmine_planning_move_button" class="ion-arrow-move" title="<%= l(:planning_move) %>"></label>
-        <input type="radio" id="redmine_planning_precedes_button" name="planning-mode" class="add_relation_button" data-type="precedes" /><label for="redmine_planning_precedes_button" class="ion-arrow-right-c" title="<%= l(:planning_add_precedes) %>"></label>
-        <input type="radio" id="redmine_planning_blocks_button" name="planning-mode" class="add_relation_button" data-type="blocks" /><label for="redmine_planning_blocks_button" class="ion-arrow-return-right" title="<%= l(:planning_add_blocks)%>"></label>
-        <input type="radio" id="redmine_planning_duplicates_button" name="planning-mode" class="add_relation_button" data-type="duplicates" /><label for="redmine_planning_duplicates_button" class="ion-loop" title="<%= l(:planning_add_duplicates)%>"></label>
-        <input type="radio" id="redmine_planning_relates_button" name="planning-mode" class="add_relation_button" data-type="relates" /><label for="redmine_planning_relates_button" class="ion-arrow-swap" title="<%= l(:planning_add_relates) %>"></label>
-        <input type="radio" id="redmine_planning_copied_to_button" name="planning-mode" class="add_relation_button" data-type="copied_to" /><label for="redmine_planning_copied_to_button" class="ion-ios7-copy" title="<%= l(:planning_add_copied_to) %>"></label>
-        <input type="radio" id="redmine_planning_delete_button" name="planning-mode" data-type="delete" /><label for="redmine_planning_delete_button" class="ion-close-round" title="<%= l(:planning_delete_relation) %>"></label>
-    </div>
-    <div class="redmine_planning_toolbar_button_set">
-        <button id="redmine_planning_fullscreen_button" class="ion-arrow-expand" title="<%= l(:planning_fullscreen) %>"></button>
-    </div>
-</div>
 <div id="redmine_planning_chart">
 </div>
 
@@ -106,10 +82,9 @@
     plugin_settings[:urls][:save_planning] = @project.blank? ? rmp_gsave_planning_path : rmp_save_planning_path(@project.identifier)
 
     # Add translations
-    strings = [ "parent_task", "start_date", "due_date", "description", "leaf_task", "yes", "no", "project", "unavailable", "adding_relation_failed", "move_to", "confirm_remove_relation", "blocks_description", "precedes_description", "relates_description", "copied_to_description", "delete_relation", "relation_exists", "fullscreen", "leave_fullscreen"]
     plugin_settings[:translations] = {}
-    strings.each do |str|
-        plugin_settings[:translations][str] = t(("planning_" + str).to_sym, options)
+    I18n.t('planning').each do |str, v|
+        plugin_settings[:translations][str] = v
     end
     plugin_settings[:translations]["field_done_ratio"] = t("field_done_ratio".to_sym, options)
 
