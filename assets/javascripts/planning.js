@@ -629,8 +629,17 @@ PlanningChart.prototype.setupDOMElements = function ()
         width: '100%'
     }).attr('id', 'planning_toolbar');
 
+    // Create container for canvas and (try to) disable right clicks in it
     this.chart_area = $('<div></div>')
-        .attr('id', 'planning_chart');
+        .attr('id', 'planning_chart')
+        .on('contextmenu', function (e) {
+            if (e.stopPropagation)
+                e.stopPropagation();
+            if (e.stopImmediatePropagation)
+                e.stopImmediatePropagation();
+            e.cancelBubble = false;
+            return false;
+        });
 
     var i, j, button, label, set, icon;
     this.buttons = {};
@@ -1912,10 +1921,53 @@ PlanningIssue.prototype.click = function (e)
         this.chart.draw();
 };
 
-PlanningIssue.prototype.dragStart = function ()
+PlanningIssue.prototype.dragStart = function (x, y, e)
 {
     if (this.chart.relating || this.chart.deleting)
         return;
+
+    var right;
+    if (e.which)
+        right = e.which === 3;
+    else
+        right = e.button === 2;
+    if (right)
+    {
+        // Show context menu
+        var $ = jQuery;
+        var id = "planning_anchor_" + this.chart.id_counter++;
+        var anchor = $('<div></div>')
+            .attr('id', id)
+            .addClass('planning_context_menu')
+            .css({
+                'position': 'absolute',
+                'top': y,
+                'left': x,
+                'background-color': '#600',
+                'width': 15,
+                'height': 15
+            })
+            .html('&nbsp;')
+            .appendTo('body');
+
+        $(document).contextmenu({
+            delegate: id,
+            autoTrigger: false,
+            menu: [
+                {
+                    title: 'Test 1',
+                    uiIcon: 'ui-icon-copy'
+                },
+                {
+                    title: 'Test 2',
+                    uiIcon: 'ui-icon-copy'
+                }
+            ]
+        });
+        $(document).contextmenu('open', anchor);
+
+        return;
+    }
 
     jQuery('.planning_tooltip').remove();
     this.dragging = true;
@@ -1925,8 +1977,12 @@ PlanningIssue.prototype.dragStart = function ()
     this.calculateLimits(0);
 };
 
-PlanningIssue.prototype.dragMove = function (dx, dy, x, y)
+PlanningIssue.prototype.dragMove = function (dx, dy, x, y, e)
 {
+    // Ignore non-left button drag
+    if ((e.buttons & 1) === 0)
+        return;
+
     if (this.chart.relating || this.chart.deleting)
         return;
 
@@ -2024,8 +2080,12 @@ PlanningIssue.prototype.dragMove = function (dx, dy, x, y)
     delete this.chart.move_time;
 };
 
-PlanningIssue.prototype.dragEnd = function ()
+PlanningIssue.prototype.dragEnd = function (e)
 {
+    // Ignore right button drag
+    if (e.button !== 0)
+        return;
+
     if (this.chart.relating || this.chart.deleting)
         return;
 

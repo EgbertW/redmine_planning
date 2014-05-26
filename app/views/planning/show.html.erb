@@ -60,6 +60,7 @@
     <%= stylesheet_link_tag 'ionicons', :plugin => 'redmine_planning' %>
     <%= javascript_include_tag 'raphael' %>
     <%= javascript_include_tag 'jquery-mousewheel', :plugin => 'redmine_planning' %>
+    <%= javascript_include_tag 'jquery.ui-contextmenu.min.js', :plugin => 'redmine_planning' %>
     <% 
     options = {}
     options[:locale] = User.current.language unless User.current.language.blank?
