@@ -186,7 +186,7 @@ PlanningIssue.prototype.showTooltip = function ()
         '<tr><th>' + this.t('start_date') + ':</th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
         '<tr><th>' + this.t('due_date') + ':</th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
         '<tr><th>' + this.t('leaf_task') + ':</th><td>' + (this.leaf ? this.t('yes') : this.t('no')) + '</td></tr>' +
-        '<tr><th>' + this.t('field_done_ratio') + ':</th><td>' + (this.percent_done) + '%</td></tr>' +
+        '<tr><th>' + this.t('field_done_ratio') + ':</th><td>' + (this.progress) + '%</td></tr>' +
         '<tr><th>' + this.t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
 
@@ -360,17 +360,14 @@ function PlanningChart(options)
     this.changed = {};
     this.setBaseDate(this.options.base_date ? this.options.base_date : rmp_getToday());
     this.container = jQuery('#' + this.options.target);
-    var pos = this.container.position();
-    this.container.css('margin-left', -pos.left);
-    this.container.css('margin-right', -pos.left);
     var chart = this;
 
     // Set up the GUI
     this.setupDOMElements();
-    this.paper = Raphael(this.chart_area.attr('id'));
-    var w = this.chart_area.innerWidth();
-    var h = this.chart_area.innerHeight();
-    this.geometry_limits = {x: [-w / 2, -w / 2], y: [0, 0]};
+    var w = this.container.innerWidth();
+    var h = this.container.innerHeight();
+    this.paper = Raphael(this.chart_area.attr('id'), w, h);
+    this.geometry_limits = {x: [-w / 2, w / 2], y: [0, 0]};
     this.setViewBox(Math.round(w / -2), 0, w, h);
     this.addBackground();
 
@@ -384,9 +381,9 @@ function PlanningChart(options)
     // Resize the planning chart when the window resizes
     var resizeFn = function (evt)
     {
-        chart.resize.call(chart, evt);
+        chart.resize(evt);
     };
-    jQuery(window).on('resize', resizeFn).resize();
+    jQuery(window).on('resize', resizeFn); //.resize();
 }
 
 PlanningChart.prototype.extend = function (target, data)
@@ -485,7 +482,7 @@ PlanningChart.prototype.resize = function ()
         var footHeight = jQuery('#footer').outerHeight();
         var contentPadding = parseInt(jQuery('#content').css('padding-bottom'), 10);
         h = Math.max(500, jQuery(window).innerHeight() - pos.top - footHeight - contentPadding);
-        w = jQuery(window).innerWidth() - 2;
+        w = jQuery(window).innerWidth();
     }
 
     this.chart_area.css({
@@ -793,7 +790,6 @@ PlanningChart.prototype.setViewBox = function (x, y, w, h)
     this.viewbox.y = y = rmp_clamp(y, this.geometry_limits.y);
     this.viewbox.w = w;
     this.viewbox.h = h;
-
     this.paper.setViewBox(this.viewbox.x, this.viewbox.y, this.viewbox.w, this.viewbox.h);
 
     // Update header
@@ -971,7 +967,7 @@ PlanningChart.prototype.reset = function ()
 {
     this.paper.clear();
     this.header = null;
-    this.elements = {'issues': this.paper.set(), 'relations': this.paper.set(), 'issue_texts': this.paper.set(), 'parent_links': this.paper.set()};
+    this.elements = {'issues': this.paper.set(), 'relations': this.paper.set(), 'issue_texts': this.paper.set(), 'parent_links': this.paper.set(), 'progress_bars': this.paper.set()};
     this.addBackground();
     this.drawHeader();
     this.issues = {'length': 0};
@@ -1012,7 +1008,7 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
         line.attr('title', this.formatDate(cur));
         lines.push(line);
 
-        if ((dw >= 20 && w % 4) || w % 8)
+        if ((dw >= 20 && w % 4 === 0) || w % 8 === 0)
             texts.push(this.paper.text(x + 2, y + 10, this.formatDate(cur)));
     }
 
@@ -1058,6 +1054,8 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
             this.elements.issues.toFront();
         if (this.elements.issue_texts)
             this.elements.issue_texts.toFront();
+        if (this.elements.progress_bars)
+            this.elements.progress_bars.toFront();
     }
 };
 
@@ -1093,8 +1091,8 @@ PlanningChart.prototype.draw = function (redraw)
 PlanningChart.prototype.getScale = function ()
 {
     return [
-        this.chart_area.width() / this.viewbox.w,
-        this.chart_area.height() / this.viewbox.h
+        this.chart_area.innerWidth() / this.viewbox.w,
+        this.chart_area.innerHeight() / this.viewbox.h
     ];
 };
 
@@ -1241,7 +1239,7 @@ function PlanningIssue(data)
     this.id = data.id;
     this.tracker = data.tracker;
     this.leaf = data.leaf ? true : false;
-    this.percent_done = data.percent_done;
+    this.progress = data.percent_done;
     this.parent_id = data.parent;
     this.parent_issue = null;
     this.children = [];
@@ -1292,6 +1290,15 @@ PlanningIssue.prototype.addRelation = function (relation)
         }
         this.relations.incoming.push(relation);
     }
+    return this;
+};
+
+PlanningIssue.prototype.setProgress = function (progress)
+{
+    progress = parseInt(progress, 10);
+    if (progress < 0 || progress > 100)
+        throw "Invalid value for progress: " + progress;
+    this.progress = progress;
     return this;
 };
 
@@ -1705,7 +1712,7 @@ PlanningIssue.prototype.checkParents = function ()
     }
 };
 
-PlanningChart.prototype.eventToCanvas = function (e)
+PlanningChart.prototype.eventToCanvas = function (e, mX, mY)
 {
     // Get scale of canvas in container
     var s = this.getScale();
@@ -1717,9 +1724,12 @@ PlanningChart.prototype.eventToCanvas = function (e)
     var mx = parseInt(this.chart_area.css('margin-left'), 10);
     var my = parseInt(this.chart_area.css('margin-top'), 10);
 
+    var st = jQuery(window).scrollTop();
+    var sl = jQuery(window).scrollLeft();
+
     // Determine position of mouse cursor
-    var x = Math.round((e.clientX - cp.left - mx) / s[0] + this.viewbox.x);
-    var y = Math.round((e.clientY - cp.top - my) / s[1] + this.viewbox.y);
+    var x = Math.round((e.clientX + sl - cp.left - mx) / s[0] + this.viewbox.x);
+    var y = Math.round((e.clientY + st - cp.top - my) / s[1] + this.viewbox.y);
     return [x, y];
 };
 
@@ -1780,7 +1790,7 @@ PlanningIssue.prototype.changeCursor = function (e, mouseX, mouseY)
         return;
     }
 
-    var pos = this.chart.eventToCanvas(e);
+    var pos = this.chart.eventToCanvas(e, mouseX, mouseY);
     var x = pos[0];
     var y = pos[1];
 
@@ -2033,6 +2043,12 @@ PlanningIssue.prototype.draw = function ()
             this.text.remove();
             delete this.text;
         }
+        if (this.progress_bar)
+        {
+            this.chart.elements.progress_bars.exclude(this.progress_bar);
+            this.progress_bar.remove();
+            delete this.progress_bar;
+        }
         if (this.parent_link)
         {
             this.chart.elements.parent_links.exclude(this.parent_link);
@@ -2042,18 +2058,17 @@ PlanningIssue.prototype.draw = function ()
         return;
     }
 
+    var type;
+    if (!this.parent && this.children.length)
+        type = "root";
+    else if (this.parent && this.children.length)
+        type = "branch";
+    else if (this.milestone)
+        type = "milestone";
+    else
+        type = "leaf";
     if (!this.element)
     {
-        var type;
-        if (!this.parent && this.children.length)
-            type = "root";
-        else if (this.parent && this.children.length)
-            type = "branch";
-        else if (this.milestone)
-            type = "milestone";
-        else
-            type = "leaf";
-
         var fill = this.chart.getTrackerAttrib(this.tracker, 'fill_color');
         if (this.milestone)
         {
@@ -2110,6 +2125,67 @@ PlanningIssue.prototype.draw = function ()
         }
     }
 
+    if (!this.milestone)
+    {
+        var pd_h = 0.2 * this.chart.options.issue_height - 1;
+        var pd_x = this.geometry.x + this.chart.options.issue_resize_border;
+        var pd_y = this.geometry.y + this.geometry.height - pd_h - 2;
+        var pd_minWidth = this.chart.options.issue_resize_border;
+        var pd_maxWidth = this.geometry.width - (this.chart.options.issue_resize_border * 2);
+        var pd_perPercent = (pd_maxWidth - pd_minWidth) / 100;
+        var pd_w = Math.round(pd_minWidth + pd_perPercent * this.progress)
+
+        var nDays = this.due_date.subtract(this.start_date).days();
+        var ppd = 100.0 / nDays;
+        var nDaysSinceStart = rmp_getToday().subtract(this.start_date).days();
+        var expectedProgress = rmp_clamp(ppd * nDaysSinceStart, 0, 100);
+    
+        var color = [10, 10, 0];
+        if (expectedProgress > this.progress)
+        {
+            var daysBehind = (expectedProgress - this.progress) / ppd;
+            var percentBehind = rmp_clamp(daysBehind / nDaysSinceStart, 0, 1) * 100;
+            var step = [2.55, -0.10, 0];
+            color = [color[0] + step[0] * percentBehind, color[1] + step[1] * percentBehind, color[2] + step[2] * percentBehind];
+        }
+        else
+        {
+            var daysAhead = (expectedProgress - this.progress) / -ppd;
+            var percentAhead = rmp_clamp(daysAhead / (nDays - nDaysSinceStart), 0, 1) * 100;
+            var step = [0, 2.45, 0];
+            color = [color[0] + step[0] * percentAhead, color[1] + step[1] * percentAhead, color[2] + step[2] * percentAhead];
+        }
+
+        if (!this.progress_bar)
+        {
+            this.progress_bar = this.chart.paper.rect(pd_x, pd_y, pd_w, pd_h, 1);
+            this.progress_bar.attr({
+                'stroke-width': 0,
+                'stroke': '#000',
+                'fill': 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')',
+                'cursor': 'e-resize',
+                'title': this.t('progress', this.progress)
+            });
+
+            // Set up event handlers
+            this.progress_bar.mousemove(this.changeCursor, this);
+            this.progress_bar.mouseout(this.closeTooltip, this);
+            this.progress_bar.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
+            this.progress_bar.click(this.click, this);
+            this.chart.elements.progress_bars.push(this.progress_bar);
+            this.progress_bar.toFront();
+        }
+        else
+        {
+            this.progress_bar.attr({
+                x: pd_x,
+                y: pd_y,
+                height: pd_h,
+                width: pd_w
+            });
+        }
+    }
+
     var n; // Name holder
     var max_length; // Maximum size of name
     var text_color;
@@ -2133,6 +2209,7 @@ PlanningIssue.prototype.draw = function ()
         if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
             attribs.stroke = text_color;
         this.text.attr(attribs);
+        this.text.toFront();
         this.text.mousemove(this.changeCursor, this);
         this.text.mouseout(this.closeTooltip, this);
         this.text.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
