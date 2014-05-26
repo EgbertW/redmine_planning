@@ -1440,7 +1440,10 @@ PlanningIssue.prototype.move = function (arg1, arg2)
             return;
 
         this.start_date = this.start_date.add(arg1);
-        this.due_date = this.due_date.add(arg1);
+        if (!this.due_date || this.due_date.getFullYear() == "1970")
+            this.due_date = this.start_date.add(DateInterval.createDays(1));
+        else
+            this.due_date = this.due_date.add(arg1);
     }
     else if (arg1 instanceof Date && arg2 instanceof Date)
     {
@@ -1980,8 +1983,10 @@ PlanningIssue.prototype.dragStart = function (x, y, e)
 PlanningIssue.prototype.dragMove = function (dx, dy, x, y, e)
 {
     // Ignore non-left button drag
-    if ((e.buttons & 1) === 0)
+    if ((e.which & 1) === 0)
+    {
         return;
+    }
 
     if (this.chart.relating || this.chart.deleting)
         return;
