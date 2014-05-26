@@ -2156,34 +2156,34 @@ PlanningIssue.prototype.draw = function ()
             color = [color[0] + step[0] * percentAhead, color[1] + step[1] * percentAhead, color[2] + step[2] * percentAhead];
         }
 
-        if (!this.progress_bar)
-        {
-            this.progress_bar = this.chart.paper.rect(pd_x, pd_y, pd_w, pd_h, 1);
-            this.progress_bar.attr({
-                'stroke-width': 0,
-                'stroke': '#000',
-                'fill': 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')',
-                'cursor': 'e-resize',
-                'title': this.t('progress', this.progress)
-            });
+        //if (!this.progress_bar)
+        //{
+        //    this.progress_bar = this.chart.paper.rect(pd_x, pd_y, pd_w, pd_h, 1);
+        //    this.progress_bar.attr({
+        //        'stroke-width': 0,
+        //        'stroke': '#000',
+        //        'fill': 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')',
+        //        'cursor': 'e-resize',
+        //        'title': this.t('progress', this.progress)
+        //    });
 
-            // Set up event handlers
-            this.progress_bar.mousemove(this.changeCursor, this);
-            this.progress_bar.mouseout(this.closeTooltip, this);
-            this.progress_bar.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
-            this.progress_bar.click(this.click, this);
-            this.chart.elements.progress_bars.push(this.progress_bar);
-            this.progress_bar.toFront();
-        }
-        else
-        {
-            this.progress_bar.attr({
-                x: pd_x,
-                y: pd_y,
-                height: pd_h,
-                width: pd_w
-            });
-        }
+        //    // Set up event handlers
+        //    this.progress_bar.mousemove(this.changeCursor, this);
+        //    this.progress_bar.mouseout(this.closeTooltip, this);
+        //    this.progress_bar.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
+        //    this.progress_bar.click(this.click, this);
+        //    this.chart.elements.progress_bars.push(this.progress_bar);
+        //    this.progress_bar.toFront();
+        //}
+        //else
+        //{
+        //    this.progress_bar.attr({
+        //        x: pd_x,
+        //        y: pd_y,
+        //        height: pd_h,
+        //        width: pd_w
+        //    });
+        //}
     }
 
     var n; // Name holder
