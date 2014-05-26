@@ -1946,28 +1946,48 @@ PlanningIssue.prototype.dragStart = function (x, y, e)
                 'position': 'absolute',
                 'top': y,
                 'left': x,
-                'background-color': '#600',
-                'width': 15,
-                'height': 15
+            })
+            .on('contextmenu', function (e)
+            {
+                e.stopPropagation();
+                return false;
             })
             .html('&nbsp;')
             .appendTo('body');
 
         $(document).contextmenu({
-            delegate: id,
+            delegate: '#' + id,
             autoTrigger: false,
+            show: {effect: 'show', 'duration': 1},
             menu: [
                 {
-                    title: 'Test 1',
-                    uiIcon: 'ui-icon-copy'
+                    title: 'Copy issue',
+                    uiIcon: 'ui-icon-copy',
+                    cmd: 'copy'
                 },
                 {
-                    title: 'Test 2',
-                    uiIcon: 'ui-icon-copy'
+                    title: 'Remove issue',
+                    uiIcon: 'ui-icon-scissors',
+                    cmd: 'remove'
                 }
-            ]
+            ],
+            open: function (e)
+            {
+                $(document).contextmenu('option', 'close', function (e) {
+                   anchor.remove();
+                   $(document).contextmenu("destroy");
+                });
+            },
+            select: function (e, ui)
+            {
+                //console.log(ui.cmd);
+            }
         });
-        $(document).contextmenu('open', anchor);
+        // We have to do this in a callback to avoid the window being closed
+        // again. Seems like a bug in jquery-ui-contextmenu.
+        setTimeout(function () {
+            $(document).contextmenu('open', anchor);
+        }, 10);
 
         return;
     }
