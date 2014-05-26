@@ -79,6 +79,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * Export chart to SVG
 
 # Version log
+* 0.7.1: May 26, 2014. Bug in relation to viewbox calulcation fixed and date selection is back.
 * 0.7.0: May 25, 2014. Major refactoring of Javascript code: validation with JSHint and separating JS and Redmine-specific code.
 * 0.6.7: May 23, 2014. Allow planning for all projects by going to /plan
 * 0.6.6: May 21, 2014. Fix mouse cursor position calculation in Chrome (Webkit)

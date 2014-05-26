@@ -2,12 +2,12 @@
   <% if User.current.allowed_to?(:plan_issues, @project) %>
     <h3><%= l(:planning_head_planning) %></h3>
     <p>
-      <%= link_to l(:planning_label_planning), rmp_show_planning_path(@project) %> |
+      <%= link_to l(:label_planning, :scope => :planning), rmp_show_planning_path(@project) %>
     </p>
   <% elsif @project.nil? %>
     <h3><%= l(:planning_head_planning) %></h3>
     <p>
-      <%= link_to l(:planning_label_planning), rmp_gshow_planning_path %>
+      <%= link_to l(:label_planning, :scope => :planning), rmp_gshow_planning_path %>
     </p>
   <% end %>
 <% end %>

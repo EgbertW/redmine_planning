@@ -6,6 +6,7 @@ en:
     center_on: "Center on"
     back_16_days: "Back 16 days"
     forward_16_days: "Forward 16 days"
+    select_date: "Select date"
     add_blocks: "Add blocking"
     add_precedes: "Add precedes"
     add_relates: "Add relates"

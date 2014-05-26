@@ -6,6 +6,7 @@ nl:
     center_on: "Centreer op"
     back_16_days: "16 dagen eerder"
     forward_16_days: "16 dagen later"
+    select_date: "Selecteer datum"
     add_blocks: "Blokkeer-relatie toevoegen"
     add_precedes: "Volg-relatie toevoegen"
     add_relates: "Gerelateerd-aan-relatie toevoegen"

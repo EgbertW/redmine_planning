@@ -529,6 +529,13 @@ PlanningChart.prototype.setupDOMElements = function ()
             },
             {
                 type: 'button',
+                id: 'planning_select_date_button',
+                data: {type: 'setdate'},
+                icon: 'ion-calendar',
+                title: this.t('select_date')
+            },
+            {
+                type: 'button',
                 id: 'planning_forward_button',
                 data: {type: 'scroll', days: 16, issues: 0},
                 icon: 'ion-skip-forward',
@@ -654,6 +661,24 @@ PlanningChart.prototype.setupDOMElements = function ()
         set.buttonset();
     }
 
+    var chart = this;
+    var cb = this.toolbar.find('#planning_select_date_button');
+    var inp = jQuery('<input />').attr('id', 'planning_select_date_button_input').hide().val(this.formatDate(rmp_getToday()));
+    cb.before(inp);
+    inp.datepicker({
+        changeMonth: true,
+        changeYear: true,
+        showWeek: true,
+        firstDay: 1,
+        onClose: function (date, picker)
+        {
+            var base_date = jQuery(this).datepicker('getDate');
+            base_date.resetTime();
+            chart.setBaseDate(base_date);
+            chart.draw();
+        }
+    });
+
     this.container.append(this.toolbar, this.chart_area);
 
     var chart = this;
@@ -683,8 +708,12 @@ PlanningChart.prototype.setupDOMElements = function ()
                 chart.setViewBox(Math.round(chart.viewbox.w / -2), chart.viewbox.y, chart.viewbox.w, chart.viewbox.h);
                 chart.draw();
                 break;
+            case "setdate":
+                button.prev('input').datepicker('show');
+                break;
             case "fullscreen":
                 chart.toggleFullscreen();
+                break;
         }
     });
 };
