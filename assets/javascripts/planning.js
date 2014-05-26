@@ -190,8 +190,26 @@ PlanningIssue.prototype.showTooltip = function ()
         '<tr><th>' + this.t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
 
+    // Append to body and show to determine the final dimensions of the tooltip
     $('body').append(d);
     d.show();
+
+    // Move to the left if it would result fall of the right side of the screen
+    var width = d.outerWidth();
+    var window_width = jQuery(window).innerWidth();
+    if (x + width > window_width)
+        d.css('left', window_width - width - 5);
+
+    // Move to above the issue if it would fall of the bottom of the screen
+    var height = d.outerHeight();
+    var window_height = jQuery(window).innerHeight();
+    var scroll_top = jQuery(window).scrollTop();
+    var fs = jQuery('#planning_fullscreen_overlay');
+    if (y + height > window_height + scroll_top)
+    {
+        y = s[1] * (this.geometry.y - this.chart.viewbox.y - this.chart.options.spacing.y) + pos.top - height;
+        d.css('top', y);
+    }
 
     // Add hover handler
     d.on("mouseenter", function ()
