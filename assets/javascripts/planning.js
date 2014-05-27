@@ -147,6 +147,7 @@ PlanningIssue.prototype.showTooltip = function ()
     d = $('<div></div>');
     d.data('issue_id', this.id);
 
+    var fs = jQuery('#planning_fullscreen_overlay').length > 0;
     var s = this.chart.getScale();
     var pos = this.chart.chart_area.position();
     var x = s[0] * (this.geometry.x - this.chart.viewbox.x) + pos.left;
@@ -158,7 +159,8 @@ PlanningIssue.prototype.showTooltip = function ()
     d.addClass('planning_tooltip')
     .css({
         'left': x,
-        'top': y
+        'top': y,
+        'position': fs ? "fixed" : "absolute"
     });
 
     var parent_issue = 'none';
@@ -175,6 +177,8 @@ PlanningIssue.prototype.showTooltip = function ()
     }
 
     var desc = this.description;
+    if (!desc)
+        desc = "";
     if (desc.length > 500)
         desc = desc.substr(0, 300);
 
@@ -203,8 +207,7 @@ PlanningIssue.prototype.showTooltip = function ()
     // Move to above the issue if it would fall of the bottom of the screen
     var height = d.outerHeight();
     var window_height = jQuery(window).innerHeight();
-    var scroll_top = jQuery(window).scrollTop();
-    var fs = jQuery('#planning_fullscreen_overlay');
+    var scroll_top = fs ? 0 : jQuery(window).scrollTop();
     if (y + height > window_height + scroll_top)
     {
         y = s[1] * (this.geometry.y - this.chart.viewbox.y - this.chart.options.spacing.y) + pos.top - height;
