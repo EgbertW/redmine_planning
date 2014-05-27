@@ -2448,12 +2448,13 @@ PlanningIssue.prototype.drawProgressBar = function ()
     if (!this.progress_bar)
     {
         // Create the progress bar and set up event handlers
+        var cursor = this.children.length ? 'not-allowed' : 'ew-resize';
         this.progress_bar = this.chart.paper.rect(pd_x, pd_y, pd_w, pd_h, 1);
         this.progress_bar.attr({
             'stroke-width': 0,
             'stroke': '#000',
             'fill': 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')',
-            'cursor': 'ew-resize',
+            'cursor': cursor,
             'title': this.t('progress', this.progress)
         });
 
@@ -2473,7 +2474,8 @@ PlanningIssue.prototype.drawProgressBar = function ()
             y: pd_y,
             height: pd_h,
             width: pd_w,
-            fill: 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')'
+            fill: 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')',
+            title: this.t('progress', this.progress)
         });
     }
 }
@@ -2761,11 +2763,7 @@ function on_set_progress(progress, old_progress)
     var url = redmine_planning_settings.urls.root + 'issues/' + this.id + '/rmpprogress';
     jQuery.post(url, store, function (response)
     {
-        if (response.success)
-        {
-            console.log('progress set');
-        }
-        else
+        if (!response.success)
         {
             alert('Setting progress for issue ' + issue.id + ' failed');
             issue.setProgress(old_progress); 

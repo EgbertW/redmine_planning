@@ -34,3 +34,4 @@ nl:
     relation_exists: "Er bestaat al een relatie tussen issue ##2 en issue ##3 (type: ##1). Deze relatie moet eerst verwijderd worden."
     fullscreen: "Gebruik volledig scherm"
     leave_fullscreen: "Verlaat volledig-scherm modus"
+    progress: "Voortgang: ##1%"

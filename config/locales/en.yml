@@ -34,3 +34,4 @@ en:
     relation_exists: "A relation between ##2 and ##3 exists (type: ##1). You must remove this relation first."
     fullscreen: "Enter fullscreen mode"
     leave_fullscreen: "Leave fullscreen mode"
+    progress: "Progress: ##1%"
