@@ -484,8 +484,9 @@ PlanningChart.prototype.sortIssues = function (callback)
         // Sort the children as they're up next
         current.children.sort(callback);
 
-        // Add children issues to front of the queue
-        for (iter = 0; iter < current.children.length; ++iter)
+        // Add children issues to front of the queue, in reverse order as
+        // they'll be reversed in the process of unshifting
+        for (iter = current.children.length - 1; iter >= 0; --iter)
             queue.unshift(current.children[iter]);
     }
 }
