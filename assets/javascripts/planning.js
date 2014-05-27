@@ -521,6 +521,13 @@ PlanningChart.prototype.resize = function ()
 
 PlanningChart.prototype.t = function t(str)
 {
+    // HACK ALERT: Ruby converts Yes to true when generating JSON, therefore we
+    // have to fix it here until I find a better solution
+    if (str == "yes")
+        str = true;
+    else if (str == "no")
+        str = false;
+
     str = this.translations[str] ? this.translations[str] : "N/A";
 
     for (var iter = 1; iter < arguments.length; ++iter)
