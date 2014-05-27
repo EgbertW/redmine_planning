@@ -331,6 +331,7 @@ function PlanningChart(options)
         this.options.target = this.options.target.substr(1);
 
     this.id_counter = 1000000;
+    this.mode = "move";
 
     var numeric = {
         'issue_height': parseInt,
@@ -1355,6 +1356,10 @@ PlanningIssue.prototype.setProgress = function (progress)
     if (progress < 0 || progress > 100)
         throw "Invalid value for progress: " + progress;
     this.progress = progress;
+
+    if (this.element)
+        this.drawProgressBar();
+
     return this;
 };
 
@@ -1810,7 +1815,7 @@ PlanningIssue.prototype.closeTooltip = function (e)
 
 PlanningIssue.prototype.changeCursor = function (e, mouseX, mouseY)
 {
-    if (this.dragging || this.chart.dragging)
+    if (this.dragging || this.chart.mode == "drag")
         return;
 
     if (!this.leaf)
@@ -1929,6 +1934,9 @@ PlanningIssue.prototype.dragStart = function (x, y, e)
     if (this.chart.relating || this.chart.deleting)
         return;
 
+    if (this.chart.mode !== "move")
+        return;
+
     var right;
     if (e.which)
         right = e.which === 3;
@@ -1993,8 +2001,11 @@ PlanningIssue.prototype.dragStart = function (x, y, e)
     }
 
     jQuery('.planning_tooltip').remove();
+
+    var cursor = this.elem
+    
     this.dragging = true;
-    this.chart.dragging = true;
+    this.chart.mode = "drag";
     this.backup();
     this.getRelations();
     this.calculateLimits(0);
@@ -2120,7 +2131,7 @@ PlanningIssue.prototype.dragEnd = function (e)
     jQuery('.planning_date_tooltip').remove();
 
     this.dragging = false;
-    this.chart.dragging = false;
+    this.chart.mode = "move";
     this.chart.saveChanged();
     if (this.critical_lines)
     {
@@ -2128,6 +2139,55 @@ PlanningIssue.prototype.dragEnd = function (e)
         delete this.critical_lines;
     }
 };
+
+PlanningIssue.prototype.progressStart = function (e)
+{
+    var right;
+    if (e.which)
+        right = e.which === 3;
+    else
+        right = e.button === 2;
+
+    if (right)
+        return;
+
+    // The progress of a parent task depends on its children
+    if (this.children.length)
+        return;
+    
+    // Milestones do not have progress (visualized)
+    if (this.milestone.length)
+        return;
+
+    this.orig_progress = this.progress;
+    this.mode = "progress";
+}
+
+PlanningIssue.prototype.progressMove = function (dx, dy, x, y, e)
+{
+    if (this.mode !== "progress")
+        return;
+
+    var pd_minWidth = this.chart.options.issue_resize_border;
+    var pd_maxWidth = this.geometry.width - (this.chart.options.issue_resize_border * 2);
+    var pd_perPercent = (pd_maxWidth - pd_minWidth) / 100;
+
+    var orig_width = Math.round(pd_minWidth + pd_perPercent * this.orig_progress)
+    var new_width = rmp_clamp(orig_width + dx, pd_minWidth, pd_maxWidth);
+    var new_progress = (new_width - pd_minWidth) / pd_perPercent;
+
+    this.progress = Math.round(new_progress);
+    this.drawProgressBar();
+}
+
+PlanningIssue.prototype.progressEnd = function(e)
+{
+    if (this.chart.options.on_set_progress)
+        this.chart.options.on_set_progress.call(this, this.progress, this.orig_progress);
+
+    delete this.orig_progress;
+    this.mode = "move";
+}
 
 PlanningIssue.prototype.updateRelations = function ()
 {
@@ -2258,66 +2318,7 @@ PlanningIssue.prototype.draw = function ()
     }
 
     if (!this.milestone)
-    {
-        var pd_h = 0.2 * this.chart.options.issue_height - 1;
-        var pd_x = this.geometry.x + this.chart.options.issue_resize_border;
-        var pd_y = this.geometry.y + this.geometry.height - pd_h - 2;
-        var pd_minWidth = this.chart.options.issue_resize_border;
-        var pd_maxWidth = this.geometry.width - (this.chart.options.issue_resize_border * 2);
-        var pd_perPercent = (pd_maxWidth - pd_minWidth) / 100;
-        var pd_w = Math.round(pd_minWidth + pd_perPercent * this.progress)
-
-        var nDays = this.due_date.subtract(this.start_date).days();
-        var ppd = 100.0 / nDays;
-        var nDaysSinceStart = rmp_getToday().subtract(this.start_date).days();
-        var expectedProgress = rmp_clamp(ppd * nDaysSinceStart, 0, 100);
-    
-        var color = [10, 10, 0];
-        if (expectedProgress > this.progress)
-        {
-            var daysBehind = (expectedProgress - this.progress) / ppd;
-            var percentBehind = rmp_clamp(daysBehind / nDaysSinceStart, 0, 1) * 100;
-            var step = [2.55, -0.10, 0];
-            color = [color[0] + step[0] * percentBehind, color[1] + step[1] * percentBehind, color[2] + step[2] * percentBehind];
-        }
-        else
-        {
-            var daysAhead = (expectedProgress - this.progress) / -ppd;
-            var percentAhead = rmp_clamp(daysAhead / (nDays - nDaysSinceStart), 0, 1) * 100;
-            var step = [0, 2.45, 0];
-            color = [color[0] + step[0] * percentAhead, color[1] + step[1] * percentAhead, color[2] + step[2] * percentAhead];
-        }
-
-        //if (!this.progress_bar)
-        //{
-        //    this.progress_bar = this.chart.paper.rect(pd_x, pd_y, pd_w, pd_h, 1);
-        //    this.progress_bar.attr({
-        //        'stroke-width': 0,
-        //        'stroke': '#000',
-        //        'fill': 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')',
-        //        'cursor': 'e-resize',
-        //        'title': this.t('progress', this.progress)
-        //    });
-
-        //    // Set up event handlers
-        //    this.progress_bar.mousemove(this.changeCursor, this);
-        //    this.progress_bar.mouseout(this.closeTooltip, this);
-        //    this.progress_bar.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
-        //    this.progress_bar.click(this.click, this);
-        //    this.chart.elements.progress_bars.push(this.progress_bar);
-        //    this.progress_bar.toFront();
-        //}
-        //else
-        //{
-        //    this.progress_bar.attr({
-        //        x: pd_x,
-        //        y: pd_y,
-        //        height: pd_h,
-        //        width: pd_w
-        //    });
-        //}
-    }
-
+        this.drawProgressBar();
     var n; // Name holder
     var max_length; // Maximum size of name
     var text_color;
@@ -2391,6 +2392,91 @@ PlanningIssue.prototype.draw = function ()
 
     return this;
 };
+
+PlanningIssue.prototype.drawProgressBar = function ()
+{
+    // For milestones, do not show progress bar
+    if (this.milestone)
+        return;
+
+    // Calculate the position and the dimensions of the progress bar
+    var pd_h = 0.2 * this.chart.options.issue_height - 1;
+    var pd_x = this.geometry.x + this.chart.options.issue_resize_border;
+    var pd_y = this.geometry.y + this.geometry.height - pd_h - 2;
+    var pd_minWidth = this.chart.options.issue_resize_border;
+    var pd_maxWidth = this.geometry.width - (this.chart.options.issue_resize_border * 2);
+    var pd_perPercent = (pd_maxWidth - pd_minWidth) / 100;
+    var pd_w = Math.round(pd_minWidth + pd_perPercent * this.progress)
+
+    // Check if the task is on schedule, ahead or behind
+    var nDays = this.due_date.subtract(this.start_date).days();
+    var ppd = 100.0 / nDays;
+    var nDaysSinceStart = rmp_getToday().subtract(this.start_date).days();
+    var expectedProgress = rmp_clamp(ppd * nDaysSinceStart, 0, 100);
+
+    // Determine color based on schedule
+    var behind_color = [200, 0, 0];
+    var schedule_color = [25, 50, 25];
+    var ahead_color = [0, 125, 0];
+
+    var remaining_days = rmp_clamp(nDays - nDaysSinceStart, 0, nDays);
+    var req_ppd = remaining_days > 0 ? (100 - this.progress) / remaining_days : 100.0 - this.progress;
+    var factor = req_ppd / ppd;
+
+    var color = [schedule_color[0], schedule_color[1], schedule_color[2]];
+    if (factor > 1)
+    {
+        // Behind schedule, factor is now between 1 and infinity. Take the logarithm to get a decent value
+        factor = Math.log(factor);
+        color = [
+            rmp_clamp(schedule_color[0] + (behind_color[0] - schedule_color[0]) * factor, 0, 255),
+            rmp_clamp(schedule_color[1] + (behind_color[1] - schedule_color[1]) * factor, 0, 255),
+            rmp_clamp(schedule_color[2] + (behind_color[2] - schedule_color[2]) * factor, 0, 255)
+        ];
+    }
+    else
+    {
+        // Ahead of schedule, factor is now between 1 and infinity. Reverse to get a proper scale
+        factor = 1 - factor;
+        color = [
+            rmp_clamp(schedule_color[0] + (ahead_color[0] - schedule_color[0]) * factor, 0, 255),
+            rmp_clamp(schedule_color[1] + (ahead_color[1] - schedule_color[1]) * factor, 0, 255),
+            rmp_clamp(schedule_color[2] + (ahead_color[2] - schedule_color[2]) * factor, 0, 255)
+        ];
+    }
+
+    if (!this.progress_bar)
+    {
+        // Create the progress bar and set up event handlers
+        this.progress_bar = this.chart.paper.rect(pd_x, pd_y, pd_w, pd_h, 1);
+        this.progress_bar.attr({
+            'stroke-width': 0,
+            'stroke': '#000',
+            'fill': 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')',
+            'cursor': 'ew-resize',
+            'title': this.t('progress', this.progress)
+        });
+
+        // Set up event handlers
+        this.progress_bar.mousemove(this.changeCursor, this);
+        this.progress_bar.mouseout(this.closeTooltip, this);
+        this.progress_bar.drag(this.progressMove, this.progressStart, this.progressEnd, this, this, this);
+        this.progress_bar.click(this.click, this);
+        this.chart.elements.progress_bars.push(this.progress_bar);
+        this.progress_bar.toFront();
+    }
+    else
+    {
+        // Just update the bar
+        this.progress_bar.attr({
+            x: pd_x,
+            y: pd_y,
+            height: pd_h,
+            width: pd_w,
+            fill: 'rgb(' + color[0] + "," + color[1] + "," + color[2] + ')'
+        });
+    }
+}
 
 /** IssueRelation class definition */
 function PlanningIssueRelation(data, chart)
@@ -2665,6 +2751,32 @@ function on_move_issues(issues)
     }, "json");
 }
 
+function on_set_progress(progress, old_progress)
+{
+    if (progress == old_progress)
+        return;
+
+    var issue = this;
+    var store = {"issue": this.id, "percent_done": progress, 'authenticity_token': AUTH_TOKEN};
+    var url = redmine_planning_settings.urls.root + 'issues/' + this.id + '/rmpprogress';
+    jQuery.post(url, store, function (response)
+    {
+        if (response.success)
+        {
+            console.log('progress set');
+        }
+        else
+        {
+            alert('Setting progress for issue ' + issue.id + ' failed');
+            issue.setProgress(old_progress); 
+        }
+    }, "json")
+    .error(function () {
+        alert('Setting progress for issue ' + issue.id + ' failed');
+        issue.setProgress(old_progress); 
+    });
+}
+
 var rm_chart;
 
 jQuery(function ()
@@ -2675,6 +2787,7 @@ jQuery(function ()
     redmine_planning_settings.on_delete_relation = on_delete_relation;
     redmine_planning_settings.on_create_relation = on_create_relation;
     redmine_planning_settings.on_move_issues = on_move_issues;
+    redmine_planning_settings.on_set_progress = on_set_progress;
 
     // Create the chart
     rm_chart = new PlanningChart(redmine_planning_settings);
@@ -2703,4 +2816,3 @@ jQuery(function ()
     //jQuery('.redmine_planning_toolbar_button_set').buttonset();
 
 }); 
-

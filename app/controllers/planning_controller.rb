@@ -147,6 +147,15 @@ class PlanningController < ApplicationController
     end
   end
 
+  def set_progress
+    issue = Issue.find(params[:issue])
+    issue.done_ratio = params[:percent_done]
+    issue.save
+    respond_to do |format|
+      format.json { render :json => {:success => true} }
+    end
+  end
+
   def create_relation
     @relation = IssueRelation.new(params[:relation])
     @relation.issue_from = @issue

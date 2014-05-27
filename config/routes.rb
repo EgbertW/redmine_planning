@@ -29,4 +29,5 @@ RedmineApp::Application.routes.draw do
   # Issue handling
   post '/issues/:id/move', :to => 'moves#move', :id => /\d+/, :as => 'rmp_move_issue'
   post '/issues/:id/rmpcreate', :to => 'planning#create_relation', :id => /\d+/, :as => 'rmp_create_relation'
+  post '/issues/:id/rmpprogress', :to => 'planning#set_progress', :id => /\d+/, :as => 'rmp_set_progress'
 end
