@@ -79,6 +79,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * Export chart to SVG
 
 # Version log
+* 0.7.3: May 27, 2014. Fix placement of tooltip in fullscreen and fix tooltip not showing when no description is set.
 * 0.7.2: May 27, 2014. Added support for progress visualization and manipulation
 * 0.7.1: May 26, 2014. Bug in relation to viewbox calculation fixed and date selection is back.
 * 0.7.0: May 25, 2014. Major refactoring of Javascript code: validation with JSHint and separating JS and Redmine-specific code.
