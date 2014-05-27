@@ -2169,6 +2169,10 @@ PlanningIssue.prototype.progressMove = function (dx, dy, x, y, e)
     if (this.mode !== "progress")
         return;
 
+    var s = this.chart.getScale();
+    dx = dx / s[0];
+    dy = dy / s[1];
+
     var pd_minWidth = this.chart.options.issue_resize_border;
     var pd_maxWidth = this.geometry.width - (this.chart.options.issue_resize_border * 2);
     var pd_perPercent = (pd_maxWidth - pd_minWidth) / 100;
