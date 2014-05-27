@@ -1465,6 +1465,26 @@ PlanningIssue.prototype.addRelation = function (relation)
     return this;
 };
 
+PlanningIssue.prototype.updateProgress = function ()
+{
+    if (!this.children.length)
+        return;
+
+    var children = this.children.length;
+    var total_progress = 0;
+    for (var i = 0; i < this.children.length; ++i)
+        total_progress += this.children[i].progress;
+
+    this.progress = Math.round(total_progress / children);
+    if (this.element)
+        this.drawProgressBar();
+
+    if (this.parent_issue)
+        this.parent_issue.updateProgress();
+
+    return this;
+}
+
 PlanningIssue.prototype.setProgress = function (progress)
 {
     progress = parseInt(progress, 10);
@@ -1474,6 +1494,9 @@ PlanningIssue.prototype.setProgress = function (progress)
 
     if (this.element)
         this.drawProgressBar();
+
+    if (this.parent_issue)
+        this.parent_issue.updateProgress();
 
     return this;
 };
@@ -2296,7 +2319,7 @@ PlanningIssue.prototype.progressMove = function (dx, dy, x, y, e)
     var new_width = rmp_clamp(orig_width + dx, pd_minWidth, pd_maxWidth);
     var new_progress = (new_width - pd_minWidth) / pd_perPercent;
 
-    this.progress = Math.round(new_progress);
+    this.setProgress(new_progress);
     this.drawProgressBar();
 }
 
