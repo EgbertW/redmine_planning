@@ -438,6 +438,58 @@ PlanningChart.prototype.extend = function (target, data)
     return target;
 }
 
+PlanningChart.prototype.sortIssues = function (callback)
+{
+    if (!callback)
+    {
+        callback = function (a, b)
+        {
+            return a.start_date.subtract(b.start_date).days();
+        };
+    }
+
+    var iter;
+    var iKeys = Object.keys(this.issues);
+    var k;
+    var list = [];
+    var done = {};
+    for (iter = 0; iter < iKeys.length; ++iter)
+    {
+        k = iKeys[iter];
+        if (k == "length")
+            continue;
+
+        list.push(this.issues[k]);
+    }
+
+    // Add all issues without a parent to the queue
+    var queue = [];
+    for (iter = 0; iter < list.length; ++iter)
+    {
+        if (!list[iter].parent_issue)
+            queue.push(list[iter]);
+    }
+
+    // Sort initial queue by the callback sort function
+    queue.sort(callback);
+
+    // Start renumbering using the queue as a starting point
+    var idx = 0;
+    while (queue.length)
+    {
+        // Remove the first element and set the index
+        var current = queue.shift();
+        current.idx = idx++;
+
+        // Sort the children as they're up next
+        current.children.sort(callback);
+
+        // Add children issues to front of the queue
+        for (iter = 0; iter < current.children.length; ++iter)
+            queue.unshift(current.children[iter]);
+    }
+}
+
 PlanningChart.prototype.mousewheel = function (e)
 {
     // Try to avoid default browser scrolling behavior. However, in Chrome,
@@ -1134,6 +1186,11 @@ PlanningChart.prototype.draw = function (redraw)
     this.drawHeader();
 
     this.analyzeHierarchy();
+
+    // Sort issues by parent and start date
+    this.sortIssues();
+
+    // Start drawing all issues
     var ikeys = Object.keys(this.issues);
     var iter; // Array iterator
     var k; // Key iterator
