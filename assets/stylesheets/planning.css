@@ -17,31 +17,6 @@ You should have received a copy of the GNU General Public License
 along with redmine_planning. If not see <http://www.gnu.org/licenses/>.
 */
 
-body
-{
-    font-family:        "DejaVu Sans", sans-serif;
-    font-size:          10pt;
-    color:              #444444;
-}
-
-a:link,
-a:visited,
-a:active
-{
-    text-decoration:    none;
-    color:              navy;
-}
-
-a:hover
-{
-    text-decoration:    none;
-}
-
-#content
-{
-    height:             100%;
-}
-
 #redmine_planning_chart
 {
     height:             480px;
