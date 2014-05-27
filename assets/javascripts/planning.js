@@ -518,23 +518,42 @@ PlanningChart.prototype.mousewheel = function (e)
             ++zoom;
         else if (e.deltaY < 0)
             --zoom;
-        var min_zoom_level = -2;
-        var zoom_upper_limit = 3;
-        var zoom_factor = 1.5;
-        zoom = Math.min(Math.max(this.options.min_zoom_level, zoom), this.options.max_zoom_level);
-        this.options.zoom_level = zoom;
-
-        // Determine new width and height
-        var new_w = Math.round(this.chart_area.width() / Math.pow(this.options.zoom_factor, zoom));
-        var new_h = Math.round(this.chart_area.height() / Math.pow(this.options.zoom_factor, zoom));
-
-        // We want the center to go to the point where the scroll button was hit
-        var center_pos = this.clientToCanvas(e.offsetX, e.offsetY);
-        var cx = new_w < this.viewbox.w ? Math.round(center_pos[0] - new_w / 2) : this.viewbox.x;
-        var cy = new_h < this.viewbox.h ? Math.round(center_pos[1] - new_h / 2) : this.viewbox.y;
-
-        this.setViewBox(cx, cy, new_w, new_h);
+        this.setZoom(zoom, e.offsetX, e.offsetY);
     }
+};
+
+PlanningChart.prototype.setZoom = function (zoom, x, y)
+{
+    var min_zoom_level = -2;
+    var zoom_upper_limit = 3;
+    var zoom_factor = 1.5;
+    zoom = rmp_clamp(zoom, this.options.min_zoom_level, this.options.max_zoom_level);
+
+    if (zoom === this.options.zoom_level)
+        return;
+
+    this.options.zoom_level = zoom;
+
+    // Determine new width and height
+    var new_w = Math.round(this.chart_area.width() / Math.pow(this.options.zoom_factor, zoom));
+    var new_h = Math.round(this.chart_area.height() / Math.pow(this.options.zoom_factor, zoom));
+
+    // We want the center to go to the point where the scroll button was hit
+    var cx = this.viewbox.x;
+    var cy = this.viewbox.y;
+
+    if (x !== undefined && y !== undefined)
+    {
+        console.log([x, y]);
+        var center_pos = this.clientToCanvas(x, y);
+        console.log('argh');
+        if (new_w < this.viewbox.w)
+            cx = Math.round(center_pos[0] - new_w / 2);
+        if (new_h < this.viewbox.h)
+            cy = Math.round(center_pos[1] - new_h / 2);
+    }
+
+    this.setViewBox(cx, cy, new_w, new_h);
 };
 
 PlanningChart.prototype.resize = function ()
@@ -679,6 +698,27 @@ PlanningChart.prototype.setupDOMElements = function ()
         [
             {
                 type: 'button',
+                id: 'planning_sort_button',
+                data: {type: 'sort'},
+                icon: 'ion-android-sort',
+                title: this.t('sort')
+            },
+            {
+                type: 'button',
+                id: 'planning_zoom_in_button',
+                data: {type: 'zoom', direction: 1},
+                icon: 'ion-plus-round',
+                title: this.t('zoom_in')
+            },
+            {
+                type: 'button',
+                id: 'planning_zoom_out_button',
+                data: {type: 'zoom', direction: -1},
+                icon: 'ion-minus-round',
+                title: this.t('zoom_out')
+            },
+            {
+                type: 'button',
                 id: 'planning_fullscreen_button',
                 data: {type: 'fullscreen'},
                 icon: ['ion-arrow-expand', 'ion-arrow-shrink'],
@@ -804,6 +844,13 @@ PlanningChart.prototype.setupDOMElements = function ()
                 break;
             case "fullscreen":
                 chart.toggleFullscreen();
+                break;
+            case "zoom":
+                chart.setZoom(chart.options.zoom_level + button.data('direction'));
+                break;
+            case "sort":
+                chart.sortIssues();
+                chart.draw();
                 break;
         }
     });
