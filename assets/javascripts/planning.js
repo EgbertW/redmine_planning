@@ -1945,59 +1945,60 @@ PlanningIssue.prototype.dragStart = function (x, y, e)
     if (right)
     {
         // Show context menu
-        var $ = jQuery;
-        var id = "planning_anchor_" + this.chart.id_counter++;
-        var anchor = $('<div></div>')
-            .attr('id', id)
-            .addClass('planning_context_menu')
-            .css({
-                'position': 'absolute',
-                'top': y,
-                'left': x,
-            })
-            .on('contextmenu', function (e)
-            {
-                e.stopPropagation();
-                return false;
-            })
-            .html('&nbsp;')
-            .appendTo('body');
-
-        $(document).contextmenu({
-            delegate: '#' + id,
-            autoTrigger: false,
-            show: {effect: 'show', 'duration': 1},
-            menu: [
-                {
-                    title: 'Copy issue',
-                    uiIcon: 'ui-icon-copy',
-                    cmd: 'copy'
-                },
-                {
-                    title: 'Remove issue',
-                    uiIcon: 'ui-icon-scissors',
-                    cmd: 'remove'
-                }
-            ],
-            open: function (e)
-            {
-                $(document).contextmenu('option', 'close', function (e) {
-                   anchor.remove();
-                   $(document).contextmenu("destroy");
-                });
-            },
-            select: function (e, ui)
-            {
-                //console.log(ui.cmd);
-            }
-        });
-        // We have to do this in a callback to avoid the window being closed
-        // again. Seems like a bug in jquery-ui-contextmenu.
-        setTimeout(function () {
-            $(document).contextmenu('open', anchor);
-        }, 10);
-
         return;
+        //var $ = jQuery;
+        //var id = "planning_anchor_" + this.chart.id_counter++;
+        //var anchor = $('<div></div>')
+        //    .attr('id', id)
+        //    .addClass('planning_context_menu')
+        //    .css({
+        //        'position': 'absolute',
+        //        'top': y,
+        //        'left': x,
+        //    })
+        //    .on('contextmenu', function (e)
+        //    {
+        //        e.stopPropagation();
+        //        return false;
+        //    })
+        //    .html('&nbsp;')
+        //    .appendTo('body');
+
+        //$(document).contextmenu({
+        //    delegate: '#' + id,
+        //    autoTrigger: false,
+        //    show: {effect: 'show', 'duration': 1},
+        //    menu: [
+        //        {
+        //            title: 'Copy issue',
+        //            uiIcon: 'ui-icon-copy',
+        //            cmd: 'copy'
+        //        },
+        //        {
+        //            title: 'Remove issue',
+        //            uiIcon: 'ui-icon-scissors',
+        //            cmd: 'remove'
+        //        }
+        //    ],
+        //    open: function (e)
+        //    {
+        //        $(document).contextmenu('option', 'close', function (e) {
+        //           anchor.remove();
+        //           $(document).contextmenu("destroy");
+        //        });
+        //    },
+        //    select: function (e, ui)
+        //    {
+        //        //console.log(ui.cmd);
+        //    }
+        //});
+        //// We have to do this in a callback to avoid the window being closed
+        //// again. Seems like a bug in jquery-ui-contextmenu.
+        //setTimeout(function () {
+        //    $(document).contextmenu('open', anchor);
+        //}, 10);
+
+        //return;
     }
 
     jQuery('.planning_tooltip').remove();
