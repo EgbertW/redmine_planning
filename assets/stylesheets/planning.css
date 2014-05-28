@@ -34,6 +34,65 @@ svg text
     user-select: none;
 }
 
+div#planning_list
+{
+    overflow:           scroll;
+}
+
+div#planning_list .tr
+{
+    position:           absolute;
+    width:              500px;
+}
+
+div#planning_list .td
+{
+    display:            inline-block;
+    white-space:        nowrap; 
+    border-top:         1px solid #aaa;
+    border-left:        1px solid #aaa;
+    margin:             0;
+    padding:            1px;
+    overflow:           hidden;
+    vertical-align:     middle;
+}
+
+div#planning_list .td:last-child
+{
+    border-right:       1px solid #aaa;
+}
+
+div#planning_list .tr:last-child .td
+{
+    border-bottom:      1px solid #aaa;
+}
+
+div#planning_list .td.c1
+{
+    width:              40px;
+}
+
+div#planning_list .td.c2
+{
+    width:              80px;
+}
+
+div#planning_list .td.c3
+{
+    width:              150px;
+}
+
+div#planning_list .td.c4
+{
+    width:              80px;
+}
+
+div#planning_list .td.c5
+{
+    width:              80px;
+}
+
+
 div.planning_tooltip
 {
     position:           absolute;

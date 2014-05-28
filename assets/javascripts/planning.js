@@ -400,12 +400,35 @@ function PlanningChart(options)
     }
     this.chart_area.on('mousewheel', mouseFn);
 
+    var listMouseFn = function (evt)
+    {
+        if (this.data('ignore'))
+        {
+            this.data('ignore', null);
+            console.log('ignore');
+            return;
+        }
+        this.data('to', null); 
+        var scale = chart.getScale();
+        chart.setViewBox(chart.viewbox.x, jQuery(this).scrollTop() / scale[1], chart.viewbox.w, chart.viewbox.h);
+    }
+    this.issue_list.on('scroll', function (evt)
+    {
+        var list = jQuery(this);
+        if (list.data('to'))
+            clearTimeout(list.data('to'));
+        list.data('to', setTimeout(function ()
+        {
+            listMouseFn.call(list);
+        }, 50));
+    });
+
     // Resize the planning chart when the window resizes
     var resizeFn = function (evt)
     {
         chart.resize(evt);
     };
-    jQuery(window).on('resize', resizeFn); //.resize();
+    jQuery(window).on('resize', resizeFn).resize();
 }
 
 PlanningChart.prototype.extend = function (target, data)
@@ -509,6 +532,9 @@ PlanningChart.prototype.mousewheel = function (e)
         var new_y = this.viewbox.y + v * (this.options.issue_height + this.options.spacing.y) * 1;
 
         this.setViewBox(new_x, new_y, this.viewbox.w, this.viewbox.h);
+
+        var scale = this.getScale();
+        jQuery('#planning_list').data('ignore', true).scrollTop(new_y * scale[1]);
     }
     else
     {
@@ -592,6 +618,17 @@ PlanningChart.prototype.resize = function ()
         this.paper.setSize(w, h);
         this.setViewBox(this.viewbox.x, this.viewbox.y, this.viewbox.w * w_factor, this.viewbox.h * h_factor);
     }
+
+    // Update position and size of issue list
+    var pos = this.chart_area.position();
+    this.issue_list.css({
+        position: fs.length ? 'fixed' : 'absolute',
+        top: pos.top,
+        left: pos.left,
+        zIndex: 10,
+        width: 200,
+        height: this.chart_area.outerHeight()
+    });
 };
 
 PlanningChart.prototype.t = function t(str)
@@ -811,6 +848,21 @@ PlanningChart.prototype.setupDOMElements = function ()
     });
 
     this.container.append(this.toolbar, this.chart_area);
+    
+    // Create container for list with issues
+    var pos = this.container.position();
+    this.issue_list = $('<div></div>')
+        .attr('id', 'planning_list')
+        .css({
+            position: 'absolute',
+            top: pos.top + 64,
+            left: pos.left,
+            zIndex: 10,
+            width: 100,
+            height: Math.max(480, this.chart_area.outerHeight()),
+            backgroundColor: '#fff'
+        });
+    this.container.append(this.issue_list);
 
     var chart = this;
     jQuery('.planning_button').click(function ()
@@ -1258,6 +1310,101 @@ PlanningChart.prototype.draw = function (redraw)
             continue;
         this.relations[k].draw();
     }
+
+    // Draw the issue list
+    this.drawList();
+};
+
+PlanningChart.prototype.drawList = function ()
+{
+    this.issue_list.html('');
+
+    var ikeys = Object.keys(this.issues);
+    var iter;
+    var issue;
+    var pissue;
+    var x;
+    var y;
+
+    var indent = 8;
+    var level = 0;
+    var text;
+    var caption;
+
+    var $ = jQuery;
+    var spacer = $('<div></div>').css({
+        margin: 0,
+        padding: 0,
+        display: 'block',
+        width: '100%',
+        height: this.options.margin.y
+    });
+    this.issue_list.append(spacer);
+
+    //var table = $('<table></table>').addClass('planning_list_table');
+    var table = $('<div class="table"></div>').addClass('planning_list_table');
+    
+    var cmp = function (a, b) {
+        return a.idx - b.idx;
+    };
+
+    var list = [];
+
+    for (iter = 0; iter < ikeys.length; ++iter)
+        if (ikeys[iter] !== "length")
+            list.push(this.issues[ikeys[iter]]);
+    list.sort(cmp);
+
+    var scale = this.getScale();
+    var row_height = (this.options.issue_height + this.options.spacing.y) / scale[1];
+    var row;
+
+    for (iter = 0; iter < list.length; ++iter)
+    {
+        issue = list[iter];
+        level = 0;
+        pissue = issue;
+        while (pissue.parent_issue)
+        {
+            ++level;
+            pissue = pissue.parent_issue;
+        }
+       
+        row = $('<div class="tr"></div>')
+            .data('issue', issue);
+
+        var n = issue.name;
+        if (n.length > 30)
+            n = n.substr(0, 27) + "...";
+
+        row.append(
+            $('<div class="td c1"></div>').text(issue.id),
+            $('<div class="td c2"></div>').text(issue.tracker),
+            $('<div class="td c3"></div>').text(n),
+            $('<div class="td c4"></div>').text(this.formatDate(issue.start_date)),
+            $('<div class="td c5"></div>').text(this.formatDate(issue.due_date))
+        );
+        row.children().css({
+            'height': row_height - 3,
+            'line-height': (row_height - 3) + 'px'
+        });
+
+        console.log(scale[1]);
+        row.css({
+            left: 0,
+            top: (this.options.margin.y - (this.options.spacing.y / 2) + row_height * issue.idx) * scale[1],
+            height: row_height
+        });
+        
+        table.append(row);
+    }
+    this.issue_list.append(table);
+
+    // Synchronize height
+    //var issue_height = (this.options.issue_height + this.options.spacing.y) * scale[1];
+    //this.issue_list.css('font-size', (issue_height * 0.4) + 'px');
+    //var correct_height = issue_height; // 2 x 1 px padding + 2 x 1 px border
+    //$('.planning_list_table tr').css('height', correct_height);
 };
 
 PlanningChart.prototype.getScale = function ()
