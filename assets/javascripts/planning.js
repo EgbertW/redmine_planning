@@ -475,7 +475,8 @@ PlanningChart.prototype.sortIssues = function (callback)
         if (k == "length")
             continue;
 
-        list.push(this.issues[k]);
+        if (this.issues[k].visible)
+            list.push(this.issues[k]);
     }
 
     // Add all issues without a parent to the queue
@@ -495,15 +496,19 @@ PlanningChart.prototype.sortIssues = function (callback)
     {
         // Remove the first element and set the index
         var current = queue.shift();
-        current.idx = idx++;
+        if (current.visible)
+            current.idx = idx++;
 
-        // Sort the children as they're up next
-        current.children.sort(callback);
+        if (!current.collapsed)
+        {
+            // Sort the children as they're up next
+            current.children.sort(callback);
 
-        // Add children issues to front of the queue, in reverse order as
-        // they'll be reversed in the process of unshifting
-        for (iter = current.children.length - 1; iter >= 0; --iter)
-            queue.unshift(current.children[iter]);
+            // Add children issues to front of the queue, in reverse order as
+            // they'll be reversed in the process of unshifting
+            for (iter = current.children.length - 1; iter >= 0; --iter)
+                queue.unshift(current.children[iter]);
+        }
     }
 }
 
@@ -1032,6 +1037,7 @@ PlanningChart.prototype.setViewBox = function (x, y, w, h)
 
     this.viewbox.x = x = rmp_clamp(x, this.geometry_limits.x);
     this.viewbox.y = y = rmp_clamp(y, this.geometry_limits.y[0], Math.max(0, this.geometry_limits.y[1] - h));
+
     this.viewbox.w = w;
     this.viewbox.h = h;
     this.paper.setViewBox(this.viewbox.x, this.viewbox.y, this.viewbox.w, this.viewbox.h);
@@ -1305,17 +1311,27 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
 
 PlanningChart.prototype.draw = function (redraw)
 {
-    var w = this.chart_area.width();
-    var h = this.chart_area.height();
-    this.geometry_limits = {'x': [-w / 2, -w / 2], 'y': [0, 0]};
+    // Draw the date header
     this.drawHeader();
 
+    // Add children to their parents etc
     this.analyzeHierarchy();
 
     // Sort issues by parent and start date
     this.sortIssues();
 
     // Start drawing all issues
+    this.drawIssues();
+
+    // Draw the issue list
+    this.drawList();
+};
+
+PlanningChart.prototype.drawIssues = function ()
+{
+    var w = this.chart_area.width();
+    var h = this.chart_area.height();
+    this.geometry_limits = {'x': [-w / 2, -w / 2], 'y': [0, 0]};
     var ikeys = Object.keys(this.issues);
     var iter; // Array iterator
     var k; // Key iterator
@@ -1340,10 +1356,8 @@ PlanningChart.prototype.draw = function (redraw)
     this.geometry_limits.y[1] += (this.options.issue_height + this.options.spacing.y) * 3;
     this.geometry_limits.x[0] -= (this.dayWidth() * 21);
     this.geometry_limits.x[1] += (this.dayWidth() * 21);
-
-    // Draw the issue list
-    this.drawList();
 };
+
 
 PlanningChart.prototype.drawList = function ()
 {
@@ -1404,8 +1418,6 @@ PlanningChart.prototype.drawList = function ()
         if (n.length > 30)
             n = n.substr(0, 27) + "...";
         
-        n = Array(level * indent + 1).join("&nbsp;") + n;
-
         issue.list_row.append(
             $('<div class="planning_issue_column issue_id"></div>').text(issue.id),
             $('<div class="planning_issue_column issue_tracker"></div>').text(issue.tracker),
@@ -1426,13 +1438,50 @@ PlanningChart.prototype.drawList = function ()
         });
 
         // Set bold for milestones and parent tasks
+        var issue_name = issue.list_row.children('.issue_name');
         if (!issue.leaf || issue.milestone)
-            issue.list_row.children('.issue_name').css('font-weight', 'bold');
+            issue_name.css('font-weight', 'bold');
+
+        var expand_button = $('<i>&nbsp;</i>').addClass('ion-android-dropdown planning_collapse_button');
+        if (issue.children.length)
+            issue_name.prepend(expand_button.clone());
+        else
+            level += 2;
+
+        issue_name.prepend(Array(level * indent + 1).join("&nbsp;"));
+
         
         row_container.append(issue.list_row);
     }
     table.append(row_container);
     this.issue_list.append(table);
+
+    table.on('click', '.planning_collapse_button', function (e)
+    {
+        var icon = jQuery(this);
+        var row = jQuery(this).closest('.planning_issue');
+        var collapsed = row.hasClass('collapsed');
+        var issue = row.data('issue');
+        issue.collapse(!collapsed);
+        chart.sortIssues();
+        chart.drawIssues();
+
+        var others = row.nextAll('.planning_issue');
+        var row_height = issue.chart.options.issue_height + issue.chart.options.spacing.y;
+        var scale = issue.chart.getScale();
+        var dom_row_height = row_height * scale[1];
+        others.each(function ()
+        {
+            var child = jQuery(this).data('issue');
+            if (!issue.visible)
+                return;
+
+            jQuery(this).css('top', (child.chart.options.margin.y - (child.chart.options.spacing.y / 2) + row_height * child.idx) * scale[1]);
+        });
+
+        row.toggleClass('collapsed');
+        icon.toggleClass('ion-android-dropdown').toggleClass('ion-arrow-right-b');
+    });
 
     // Synchronize scrolling
     var chart = this;
@@ -1656,6 +1705,8 @@ function PlanningIssue(data)
     this.geometry = null;
 
     this.milestone = false;
+    this.visible = true;
+    this.collapsed = false;
 }
 
 PlanningIssue.prototype.setChart = function (chart, idx)
@@ -1751,6 +1802,12 @@ PlanningIssue.prototype.getRelations = function ()
 
 PlanningIssue.prototype.update = function ()
 {
+    if (!this.visible)
+    {
+        this.geometry = {x: 0, y: 0, w: 0, h: 0};
+        return this;
+    }
+
     // Recalculate geometry
     var base = this.chart.base_date;
     if (this.milestone)
@@ -2577,6 +2634,61 @@ PlanningIssue.prototype.updateRelations = function ()
     }
 };
 
+PlanningIssue.prototype.setVisible = function (visible)
+{
+    if (!visible)
+    {
+        if (this.element)
+        {
+            this.chart.elements.issues.exclude(this.element);
+            this.element.remove();
+            delete this.element;
+        }
+        if (this.text)
+        {
+            this.chart.elements.issue_texts.exclude(this.text);
+            this.text.remove();
+            delete this.text;
+        }
+        if (this.parent_link)
+        {
+            this.chart.elements.parent_links.exclude(this.parent_link);
+            this.parent_link.remove();
+            delete this.parent_link;
+        }
+        if (this.progress_bar)
+        {
+            this.chart.elements.parent_links.exclude(this.progress_bar);
+            this.progress_bar.remove();
+            delete this.progress_bar;
+        }
+        this.visible = false;
+        delete this.idx;
+
+        this.list_row.hide();
+    }
+    else
+    {
+        this.visible = true;
+        this.list_row.show();
+        this.update();
+    }
+}
+
+PlanningIssue.prototype.collapse = function (collapse)
+{
+    for (var iter = 0; iter < this.children.length; ++iter)
+    {
+        this.children[iter].collapse(collapse);
+        this.children[iter].setVisible(!collapse);
+    }
+
+    if (this.children.length)
+        this.collapsed = collapse;
+
+    return this;
+};
+
 /**
  * Draw the issue on the chart
  *
@@ -2585,6 +2697,9 @@ PlanningIssue.prototype.updateRelations = function ()
 PlanningIssue.prototype.draw = function ()
 {
     // If no geometry has been calcalated, do so and return to avoid recursion
+    if (!this.visible)
+        return this;
+
     if (!this.geometry)
         return this.update();
 
