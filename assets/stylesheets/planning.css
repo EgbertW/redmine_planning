@@ -53,14 +53,15 @@ div #planning_list .planning_list_row_container
 
 div#planning_list .planning_issue
 {
-    position:           absolute;
-    width:              500px;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+    position:               absolute;
+    width:                  500px;
+    -webkit-touch-callout:  none;
+    -webkit-user-select:    none;
+    -khtml-user-select:     none;
+    -moz-user-select:       none;
+    -ms-user-select:        none;
+    user-select:            none;
+    cursor:                 context-menu;
 }
 
 div#planning_list .planning_issue_column

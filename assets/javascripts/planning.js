@@ -453,6 +453,13 @@ PlanningChart.prototype.sortIssues = function (callback)
     {
         callback = function (a, b)
         {
+            if (a.start_date === null && b.start_date === null)
+                return 0;
+            else if (a.start_date === null)
+                return 1;
+            else if (b.start_date === null)
+                return -1;
+
             return a.start_date.subtract(b.start_date).days();
         };
     }
@@ -1047,20 +1054,20 @@ PlanningChart.prototype.setViewBox = function (x, y, w, h)
             continue;
 
         if (
-            this.issues[k].due_date >= start_date && 
-            this.issues[k].start_date < end_date &&
+            this.issues[k].geometry.x + this.issues[k].geometry.width >= x &&
+            this.issues[k].geometry.x <= x + w &&
             this.issues[k].geometry.y >= this.viewbox.y + this.options.margin.y
         )
         {
             if (!this.issues[k].element)
             {
-                this.issues[k].update();
+                this.issues[k].draw();
                 this.issues[k].updateRelations();
             }
         }
         else if (this.issues[k].element)
         {
-            this.issues[k].update();
+            this.issues[k].draw();
         }
     }
 };
@@ -1329,8 +1336,10 @@ PlanningChart.prototype.draw = function (redraw)
         this.relations[k].draw();
     }
 
-    // Update the geometry limits to have space for 3 more issues
+    // Update the geometry limits to have space for 3 more issues and three more weeks on each side
     this.geometry_limits.y[1] += (this.options.issue_height + this.options.spacing.y) * 3;
+    this.geometry_limits.x[0] -= (this.dayWidth() * 21);
+    this.geometry_limits.x[1] += (this.dayWidth() * 21);
 
     // Draw the issue list
     this.drawList();
@@ -1348,7 +1357,7 @@ PlanningChart.prototype.drawList = function ()
     var y;
 
     var indent = 2;
-    var level = 0;
+    var level = 1;
     var text;
     var caption;
 
@@ -1416,8 +1425,8 @@ PlanningChart.prototype.drawList = function ()
             height: dom_row_height
         });
 
-        // Set indentation
-        if (!issue.leaf)
+        // Set bold for milestones and parent tasks
+        if (!issue.leaf || issue.milestone)
             issue.list_row.children('.issue_name').css('font-weight', 'bold');
         
         row_container.append(issue.list_row);
@@ -1620,8 +1629,14 @@ function PlanningIssue(data)
 {
     this.start_date = new Date(data.start_date);
     this.start_date.resetTime();
+    if (this.start_date.getFullYear() == "1970")
+        this.start_date = null;
+
     this.due_date = new Date(data.due_date);
     this.due_date.resetTime();
+    if (this.due_date.getFullYear() == "1970")
+        this.due_date = null;
+
     this.name = data.name;
     this.description = data.description;
     this.project = data.project_name;
@@ -2769,41 +2784,44 @@ PlanningIssue.prototype.drawProgressBar = function ()
     var pd_perPercent = (pd_maxWidth - pd_minWidth) / 100;
     var pd_w = Math.round(pd_minWidth + pd_perPercent * this.progress)
 
-    // Check if the task is on schedule, ahead or behind
-    var nDays = this.due_date.subtract(this.start_date).days();
-    var ppd = 100.0 / nDays;
-    var nDaysSinceStart = rmp_getToday().subtract(this.start_date).days();
-    var expectedProgress = rmp_clamp(ppd * nDaysSinceStart, 0, 100);
-
     // Determine color based on schedule
     var behind_color = [200, 0, 0];
     var schedule_color = [25, 50, 25];
     var ahead_color = [0, 125, 0];
-
-    var remaining_days = rmp_clamp(nDays - nDaysSinceStart, 0, nDays);
-    var req_ppd = remaining_days > 0 ? (100 - this.progress) / remaining_days : 100.0 - this.progress;
-    var factor = req_ppd / ppd;
-
     var color = [schedule_color[0], schedule_color[1], schedule_color[2]];
-    if (factor > 1)
+
+    // Check if the task is on schedule, ahead or behind
+    if (this.start_date && this.due_date)
     {
-        // Behind schedule, factor is now between 1 and infinity. Take the logarithm to get a decent value
-        factor = Math.log(factor);
-        color = [
-            rmp_clamp(schedule_color[0] + (behind_color[0] - schedule_color[0]) * factor, 0, 255),
-            rmp_clamp(schedule_color[1] + (behind_color[1] - schedule_color[1]) * factor, 0, 255),
-            rmp_clamp(schedule_color[2] + (behind_color[2] - schedule_color[2]) * factor, 0, 255)
-        ];
-    }
-    else
-    {
-        // Ahead of schedule, factor is now between 1 and infinity. Reverse to get a proper scale
-        factor = 1 - factor;
-        color = [
-            rmp_clamp(schedule_color[0] + (ahead_color[0] - schedule_color[0]) * factor, 0, 255),
-            rmp_clamp(schedule_color[1] + (ahead_color[1] - schedule_color[1]) * factor, 0, 255),
-            rmp_clamp(schedule_color[2] + (ahead_color[2] - schedule_color[2]) * factor, 0, 255)
-        ];
+        var nDays = this.due_date.subtract(this.start_date).days();
+        var ppd = 100.0 / nDays;
+        var nDaysSinceStart = rmp_getToday().subtract(this.start_date).days();
+        var expectedProgress = rmp_clamp(ppd * nDaysSinceStart, 0, 100);
+
+        var remaining_days = rmp_clamp(nDays - nDaysSinceStart, 0, nDays);
+        var req_ppd = remaining_days > 0 ? (100 - this.progress) / remaining_days : 100.0 - this.progress;
+        var factor = req_ppd / ppd;
+
+        if (factor > 1)
+        {
+            // Behind schedule, factor is now between 1 and infinity. Take the logarithm to get a decent value
+            factor = Math.log(factor);
+            color = [
+                rmp_clamp(schedule_color[0] + (behind_color[0] - schedule_color[0]) * factor, 0, 255),
+                rmp_clamp(schedule_color[1] + (behind_color[1] - schedule_color[1]) * factor, 0, 255),
+                rmp_clamp(schedule_color[2] + (behind_color[2] - schedule_color[2]) * factor, 0, 255)
+            ];
+        }
+        else
+        {
+            // Ahead of schedule, factor is now between 1 and infinity. Reverse to get a proper scale
+            factor = 1 - factor;
+            color = [
+                rmp_clamp(schedule_color[0] + (ahead_color[0] - schedule_color[0]) * factor, 0, 255),
+                rmp_clamp(schedule_color[1] + (ahead_color[1] - schedule_color[1]) * factor, 0, 255),
+                rmp_clamp(schedule_color[2] + (ahead_color[2] - schedule_color[2]) * factor, 0, 255)
+            ];
+        }
     }
 
     if (!this.progress_bar)

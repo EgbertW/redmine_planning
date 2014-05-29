@@ -39,6 +39,13 @@ Hit the 'Plan' button next to the 'Gantt' button in any project that has Issue m
 ### Navigation
 You can use the 'Back' and 'Forward' to move in the planning chart. You can also drag the canvas which will move it around. You can also use the scrolwheel to scroll horizontally and vertically. If you hold the Control-button down while scrolling, the chart will zoom in and out to give more overview. Additionally, since browsers sometimes force zooming when holding down Control while scrolling even though the JavaScript requests it not to, Alt+Scroll will also zoom the chart.
 
+### List of issues
+The left side of the screen will show a list of issues. Issues are indented to show their hierarchy. Issues are grouped by their parent task and sorted by their starting date.
+You can double click on an issue in the list of issue on the left side.
+This will center the issue in the screen. You can either scroll in the planning chart or in the list of issues, both views are synchronized.
+
+The list of issues can be resized by dragging the right edge of the list. Performance of this is currently quite poor in Firefox, Chrome seems to do it properly. Future updates hopefully may improve performance in Firefox.
+
 ### Types of relations
 Redmine supports four types of relations:
 
@@ -69,16 +76,16 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 ## Known issues
 * The tooltip showing issue information may something get in the way many issues are close together. **Planned fix**: better placement / close button / to be determined.
 * Critical path analysis is not completely valid when resizing issues.
-* When an issue does not have a set due date, it will have an default initial size. However, resizing will not behave as expected. The workaroundis to do the resize in two steps: first just resize it to anything, release it to set the dates and then redo it to set the proper due date.
+* When an issue does not have a set due date, it will have an default initial size. However, resizing will not behave as expected. The workaround is to do the resize in two steps: first just resize it to anything, release it to set the dates and then redo it to set the proper due date.
+* Scrolling the chart and resizing the list of issues may be rather slow in Firefox. Chrome does a good job at this. Future updates hopefully will have to improve this situation.
 
 ## Planned features
 * Add new issues to the current project / subprojects
 * Add parent/child relations
-* Show progress in Gantt style
-* Optionally show a list of issues at the left side of the chart, Gantt style, to make it easier to find issues over a larger timespan
 * Export chart to SVG
 
 # Version log
+* 0.8.0-alpha May 29, 2014. Add list of issues on the left side of the chart.
 * 0.7.3: May 27, 2014. Fix placement of tooltip in fullscreen and fix tooltip not showing when no description is set.
 * 0.7.2: May 27, 2014. Added support for progress visualization and manipulation
 * 0.7.1: May 26, 2014. Bug in relation to viewbox calculation fixed and date selection is back.
