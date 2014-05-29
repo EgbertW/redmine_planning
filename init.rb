@@ -27,7 +27,7 @@ Redmine::Plugin.register :redmine_planning do
   description 'Offers a UI tailored for planning projects by dragging, dropping ' +
               'and resizing issues and by adding and editing relations and ' +
               'providing critical path analysis'
-  version     '0.7.3'
+  version     '0.7.4'
 
   if respond_to?(:url)
     url 'https://github.com/MadEgg/redmine_planning'
