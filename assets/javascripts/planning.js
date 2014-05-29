@@ -400,35 +400,21 @@ function PlanningChart(options)
     }
     this.chart_area.on('mousewheel', mouseFn);
 
-    var listMouseFn = function (evt)
-    {
-        if (this.data('ignore'))
-        {
-            this.data('ignore', null);
-            console.log('ignore');
-            return;
-        }
-        this.data('to', null); 
-        var scale = chart.getScale();
-        chart.setViewBox(chart.viewbox.x, jQuery(this).scrollTop() / scale[1], chart.viewbox.w, chart.viewbox.h);
-    }
-    this.issue_list.on('scroll', function (evt)
-    {
-        var list = jQuery(this);
-        if (list.data('to'))
-            clearTimeout(list.data('to'));
-        list.data('to', setTimeout(function ()
-        {
-            listMouseFn.call(list);
-        }, 50));
-    });
-
     // Resize the planning chart when the window resizes
     var resizeFn = function (evt)
     {
         chart.resize(evt);
     };
-    jQuery(window).on('resize', resizeFn).resize();
+    jQuery(window).on('resize', resizeFn);
+    
+    // Call handler asynchronously to be able to set the size of the planning
+    // list In Chrome it usually works fine without this, in Firefox the
+    // position() method of jQuery seems unreliable after the element has just
+    // been appended.
+    setTimeout(function ()
+    {
+        jQuery(window).resize();
+    }, 10);
 }
 
 PlanningChart.prototype.extend = function (target, data)
@@ -534,7 +520,7 @@ PlanningChart.prototype.mousewheel = function (e)
         this.setViewBox(new_x, new_y, this.viewbox.w, this.viewbox.h);
 
         var scale = this.getScale();
-        jQuery('#planning_list').data('ignore', true).scrollTop(new_y * scale[1]);
+        jQuery('#planning_list .table').data('ignore', true).scrollTop(new_y * scale[1]);
     }
     else
     {
@@ -570,9 +556,7 @@ PlanningChart.prototype.setZoom = function (zoom, x, y)
 
     if (x !== undefined && y !== undefined)
     {
-        console.log([x, y]);
         var center_pos = this.clientToCanvas(x, y);
-        console.log('argh');
         if (new_w < this.viewbox.w)
             cx = Math.round(center_pos[0] - new_w / 2);
         if (new_h < this.viewbox.h)
@@ -626,7 +610,6 @@ PlanningChart.prototype.resize = function ()
         top: pos.top,
         left: pos.left,
         zIndex: 10,
-        width: 200,
         height: this.chart_area.outerHeight()
     });
 };
@@ -850,12 +833,12 @@ PlanningChart.prototype.setupDOMElements = function ()
     this.container.append(this.toolbar, this.chart_area);
     
     // Create container for list with issues
-    var pos = this.container.position();
+    var pos = this.chart_area.position();
     this.issue_list = $('<div></div>')
         .attr('id', 'planning_list')
         .css({
             position: 'absolute',
-            top: pos.top + 64,
+            top: pos.top,
             left: pos.left,
             zIndex: 10,
             width: 100,
@@ -1006,7 +989,7 @@ PlanningChart.prototype.setViewBox = function (x, y, w, h)
         this.viewbox = {};
 
     this.viewbox.x = x = rmp_clamp(x, this.geometry_limits.x);
-    this.viewbox.y = y = rmp_clamp(y, this.geometry_limits.y);
+    this.viewbox.y = y = rmp_clamp(y, this.geometry_limits.y[0], Math.max(0, this.geometry_limits.y[1] - h));
     this.viewbox.w = w;
     this.viewbox.h = h;
     this.paper.setViewBox(this.viewbox.x, this.viewbox.y, this.viewbox.w, this.viewbox.h);
@@ -1332,17 +1315,10 @@ PlanningChart.prototype.drawList = function ()
     var caption;
 
     var $ = jQuery;
-    var spacer = $('<div></div>').css({
-        margin: 0,
-        padding: 0,
-        display: 'block',
-        width: '100%',
-        height: this.options.margin.y
-    });
-    this.issue_list.append(spacer);
 
-    //var table = $('<table></table>').addClass('planning_list_table');
     var table = $('<div class="table"></div>').addClass('planning_list_table');
+    var row_container = $('<div></div>').addClass('planning_list_row_container');
+    row_container.css('height', this.geometry_limits.y[1] + this.viewbox.height);
     
     var cmp = function (a, b) {
         return a.idx - b.idx;
@@ -1389,22 +1365,54 @@ PlanningChart.prototype.drawList = function ()
             'line-height': (row_height - 3) + 'px'
         });
 
-        console.log(scale[1]);
         row.css({
             left: 0,
             top: (this.options.margin.y - (this.options.spacing.y / 2) + row_height * issue.idx) * scale[1],
             height: row_height
         });
         
-        table.append(row);
+        row_container.append(row);
     }
+    table.append(row_container);
     this.issue_list.append(table);
 
-    // Synchronize height
-    //var issue_height = (this.options.issue_height + this.options.spacing.y) * scale[1];
-    //this.issue_list.css('font-size', (issue_height * 0.4) + 'px');
-    //var correct_height = issue_height; // 2 x 1 px padding + 2 x 1 px border
-    //$('.planning_list_table tr').css('height', correct_height);
+    // Synchronize scrolling
+    var chart = this;
+    var listMouseFn = function (evt)
+    {
+        if (this.data('ignore'))
+        {
+            this.data('ignore', null);
+            return;
+        }
+        this.data('to', null); 
+        var scale = chart.getScale();
+        chart.setViewBox(chart.viewbox.x, jQuery(this).scrollTop() / scale[1], chart.viewbox.w, chart.viewbox.h);
+    }
+
+    table.on('scroll', function (evt)
+    {
+        var list = jQuery(this);
+        if (list.data('to'))
+            clearTimeout(list.data('to'));
+        list.data('to', setTimeout(function ()
+        {
+            listMouseFn.call(list);
+        }, 50));
+    });
+
+    var list = this.issue_list;
+    list.resizable({
+        ghost: true,
+        handles: "e",
+        helper: 'resize-helper',
+        start: function (evt, ui)
+        {
+            var max = list.find('.tr').first().outerWidth();
+            list.resizable('option', 'maxWidth', max);
+        }
+    });
+
 };
 
 PlanningChart.prototype.getScale = function ()
@@ -1688,10 +1696,9 @@ PlanningIssue.prototype.update = function ()
         };
     }
 
-    this.chart.geometry_limits.x[0] = Math.min(this.geometry.x - this.chart.options.margin.x, this.chart.geometry_limits.x[0]);
-    this.chart.geometry_limits.x[1] = Math.max(this.geometry.x - this.chart.options.margin.x, this.chart.geometry_limits.x[1]);
-    this.chart.geometry_limits.y[0] = Math.min(this.geometry.y - this.chart.options.margin.y, this.chart.geometry_limits.y[0]);
-    this.chart.geometry_limits.y[1] = Math.max(this.geometry.y - this.chart.options.margin.y, this.chart.geometry_limits.y[1]);
+    this.chart.geometry_limits.x[0] = Math.min(this.geometry.x - this.chart.options.spacing.x, this.chart.geometry_limits.x[0]);
+    this.chart.geometry_limits.x[1] = Math.max(this.geometry.x - this.chart.options.spacing.x + this.geometry.width + this.chart.options.spacing.x, this.chart.geometry_limits.x[1]);
+    this.chart.geometry_limits.y[1] = Math.max(this.geometry.y + this.geometry.height + this.chart.options.spacing.y, this.chart.geometry_limits.y[1]);
 
     return this.draw();
 };
@@ -3100,7 +3107,4 @@ jQuery(function ()
     {
         jQuery('#query_form').submit();
     }, 500);
-
-    //jQuery('.redmine_planning_toolbar_button_set').buttonset();
-
 }); 
