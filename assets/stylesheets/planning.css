@@ -51,13 +51,19 @@ div #planning_list .planning_list_row_container
 {
 }
 
-div#planning_list .tr
+div#planning_list .planning_issue
 {
     position:           absolute;
     width:              500px;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
-div#planning_list .td
+div#planning_list .planning_issue_column
 {
     display:            inline-block;
     white-space:        nowrap; 
@@ -67,39 +73,41 @@ div#planning_list .td
     padding:            1px;
     overflow:           hidden;
     vertical-align:     middle;
+    z-index:            101;
 }
 
-div#planning_list .td:last-child
+div#planning_list .planning_issue_column:last-child
 {
     border-right:       1px solid #aaa;
 }
 
-div#planning_list .tr:last-child .td
+div#planning_list .planning_issue:last-child .planning_issue_column
 {
     border-bottom:      1px solid #aaa;
 }
 
-div#planning_list .td.c1
+div#planning_list .planning_issue_column.issue_id
 {
-    width:              40px;
+    width:              30px;
+    text-align:         right;
 }
 
-div#planning_list .td.c2
+div#planning_list .planning_issue_column.issue_tracker
+{
+    width:              50px;
+}
+
+div#planning_list .planning_issue_column.issue_name
+{
+    width:              200px;
+}
+
+div#planning_list .planning_issue_column.issue_start
 {
     width:              80px;
 }
 
-div#planning_list .td.c3
-{
-    width:              150px;
-}
-
-div#planning_list .td.c4
-{
-    width:              80px;
-}
-
-div#planning_list .td.c5
+div#planning_list .planning_issue_column.issue_due
 {
     width:              80px;
 }

@@ -564,6 +564,36 @@ PlanningChart.prototype.setZoom = function (zoom, x, y)
     }
 
     this.setViewBox(cx, cy, new_w, new_h);
+
+    // Update sizes in issue list
+    var scale = this.getScale();
+    var row_height = this.options.issue_height + this.options.spacing.y;
+    var dom_row_height = row_height * scale[1];
+    var ikeys = Object.keys(this.issues);
+    var k;
+    var issue;
+    for (var iter = 0; iter < ikeys.length; ++iter)
+    {
+        k = ikeys[iter];
+        if (k == "length")
+            continue;
+        
+        issue = this.issues[k];
+        var row = issue.list_row;
+        row.css({ 
+            top: (this.options.margin.y - (this.options.spacing.y / 2) + row_height * issue.idx) * scale[1],
+            height: dom_row_height
+        });
+
+        var font_size = Math.min(dom_row_height * 0.5, 14);
+        row.children().css({
+            'line-height': dom_row_height - 3 + 'px',
+            'font-size': font_size + 'px',
+            'height': dom_row_height - 3
+        });
+    }
+
+    this.issue_list.find('.table').scrollTop(this.viewbox.y * scale[1]);
 };
 
 PlanningChart.prototype.resize = function ()
@@ -1343,7 +1373,9 @@ PlanningChart.prototype.drawList = function ()
     list.sort(cmp);
 
     var scale = this.getScale();
-    var row_height = (this.options.issue_height + this.options.spacing.y) / scale[1];
+    var row_height = this.options.issue_height + this.options.spacing.y;
+    var dom_row_height = row_height * scale[1];
+    var font_size = Math.min(dom_row_height * 0.5, 14);
 
     for (iter = 0; iter < list.length; ++iter)
     {
@@ -1359,7 +1391,6 @@ PlanningChart.prototype.drawList = function ()
         issue.list_row = $('<div class="planning_issue"></div>')
             .data('issue', issue);
 
-
         var n = issue.name;
         if (n.length > 30)
             n = n.substr(0, 27) + "...";
@@ -1374,14 +1405,15 @@ PlanningChart.prototype.drawList = function ()
             $('<div class="planning_issue_column issue_due"></div>').text(this.formatDate(issue.due_date))
         );
         issue.list_row.children().css({
-            'height': row_height - 3,
-            'line-height': (row_height - 3) + 'px'
+            'height': dom_row_height - 3,
+            'line-height': dom_row_height - 3 + 'px',
+            'font-size': font_size + 'px'
         });
 
         issue.list_row.css({
             left: 0,
             top: (this.options.margin.y - (this.options.spacing.y / 2) + row_height * issue.idx) * scale[1],
-            height: row_height
+            height: dom_row_height
         });
 
         // Set indentation
@@ -1426,11 +1458,11 @@ PlanningChart.prototype.drawList = function ()
 
         if (start_date && start_date.getFullYear() != "1970")
         {
-            console.log([issue.id, start_date]);
-
             var x_pos = start_date.subtract(issue.chart.base_date).days() * issue.chart.dayWidth();
-            issue.chart.setViewBox(x_pos, issue.chart.viewbox.y, issue.chart.viewbox.w, issue.chart.viewbox.h);
+            issue.chart.setViewBox(x_pos - issue.chart.viewbox.w / 2, issue.chart.viewbox.y, issue.chart.viewbox.w, issue.chart.viewbox.h);
         }
+        row.parent().children('.ui-state-highlight').removeClass('ui-state-highlight');
+        row.addClass('ui-state-highlight');
     });
 
     var list = this.issue_list;
