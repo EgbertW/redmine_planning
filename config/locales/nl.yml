@@ -18,6 +18,7 @@ nl:
     due_date: "Einddatum"
     description: "Omschrijving"
     leaf_task: "Kinderloos"
+    is_closed: "Gesloten"
     yes: "ja"
     no: "nee"
     sort: "Sorteer issues"

@@ -211,6 +211,7 @@ PlanningIssue.prototype.showTooltip = function ()
         '<tr><th>' + this.t('start_date') + ':</th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
         '<tr><th>' + this.t('due_date') + ':</th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
         '<tr><th>' + this.t('leaf_task') + ':</th><td>' + (this.leaf ? this.t('yes') : this.t('no')) + '</td></tr>' +
+        '<tr><th>' + this.t('is_closed') + ':</th><td>' + (this.closed ? this.t('yes') : this.t('no')) + '</td></tr>' +
         '<tr><th>' + this.t('field_done_ratio') + ':</th><td>' + (this.progress) + '%</td></tr>' +
         '<tr><th>' + this.t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
@@ -1450,7 +1451,8 @@ PlanningChart.prototype.drawList = function ()
         issue.list_row.children().css({
             'height': dom_row_height - 3,
             'line-height': dom_row_height - 3 + 'px',
-            'font-size': font_size + 'px'
+            'font-size': font_size + 'px',
+            'text-decoration': issue.closed ? 'line-through' : 'none'
         });
 
         issue.list_row.css({
@@ -1716,6 +1718,7 @@ function PlanningIssue(data)
     this.id = data.id;
     this.tracker = data.tracker;
     this.leaf = data.leaf ? true : false;
+    this.closed = data.closed ? true : false;
     this.progress = data.percent_done;
     this.parent_id = data.parent;
     this.parent_issue = null;
@@ -2872,6 +2875,9 @@ PlanningIssue.prototype.draw = function ()
         };
         if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
             attribs.fill = text_color;
+        if (this.closed)
+            attribs['text-decoration'] = "line-through";
+
         this.text.attr(attribs);
         this.text.toFront();
         this.text.mousemove(this.changeCursor, this);
