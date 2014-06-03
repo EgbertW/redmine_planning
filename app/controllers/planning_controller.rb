@@ -88,7 +88,9 @@ class PlanningController < ApplicationController
         :description => issue[:description],
         :leaf => issue.leaf?,
         :parent => issue.parent_issue_id,
-        :percent_done => issue.done_ratio
+        :percent_done => issue.done_ratio,
+        :closed => issue.closed?,
+        :status => issue.status.name
     })
   end
   
@@ -130,7 +132,7 @@ class PlanningController < ApplicationController
     @tracker_ids = {}
     trackers.each do |tracker|
         @tracker_ids[tracker.id] = tracker[:name]
-        @response[:projects].push({
+        @response[:trackers].push({
             :id => tracker.id,
             :name => tracker.name,
         })
@@ -164,9 +166,13 @@ class PlanningController < ApplicationController
           to_retrieve.add(issue.parent_issue_id) unless @issue_ids.include?(issue.parent_issue_id)
         end
         
-        relations = IssueRelation.where("issue_from_id IN (:ids) OR issue_to_id IN (:ids)", :ids => to_retrieve)
+        # On the first iteration, get relations of all issues seen so far.
+        # On later iterations only retrieve of the newly loaded issues.
+        relation_retrieve = iterations == 1 ? @issue_ids : to_retrieve
+        relations = IssueRelation.where("issue_from_id IN (:ids) OR issue_to_id IN (:ids)", :ids => relation_retrieve)
         relations.each do |relation|
           add_relation(relation)
+          next unless ['precedes', 'blocks'].include?(relation.relation_type)
           to_retrieve.add(relation[:from]) unless @issue_ids.include?(relation[:from])
           to_retrieve.add(relation[:to]) unless @issue_ids.include?(relation[:to])
         end
