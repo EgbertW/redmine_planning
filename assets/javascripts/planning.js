@@ -2402,7 +2402,7 @@ PlanningIssue.prototype.draw = function ()
             'cursor': 'move'
         };
         if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
-            attribs.stroke = text_color;
+            attribs.fill = text_color;
         this.text.attr(attribs);
         this.text.toFront();
         this.text.mousemove(this.changeCursor, this);
