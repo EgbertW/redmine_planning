@@ -78,19 +78,6 @@
 
     plugin_settings[:tracker]['Default'] = default[:tracker]['Default'] if not plugin_settings[:tracker].has_key?('Default')
 
-    # Convert tracker names to tracker IDs
-    k = plugin_settings[:tracker].keys
-    k.each do |key|
-      next if key == "Default"
-      if key.to_i == 0
-      then
-        val = plugin_settings[:tracker][key]
-        tracker = Tracker.where(:name => key).first
-        plugin_settings[:tracker].delete(key)
-        plugin_settings[:tracker][tracker[:id]] = val if tracker
-      end
-    end
-
     # Remove all old configuration
     plugin_settings.each do |key, value|
       sym = key.to_sym
@@ -109,9 +96,9 @@
     keys.each do |key|
       next if key == "Default"
       next if not trackers.has_key?(key)
-      val = plugin_settings['tracker'][key]
-      plugin_settings['tracker'][trackers[key]] = val
-      plugin_settings['tracker'].delete(key)
+      val = plugin_settings[:tracker][key]
+      plugin_settings[:tracker][trackers[key]] = val
+      plugin_settings[:tracker].delete(key)
     end
       
     # Provide project and date format to Javascript
