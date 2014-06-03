@@ -159,30 +159,43 @@ class PlanningController < ApplicationController
 
     iterations = 1
     while true
-        to_retrieve = Set.new
+        # List of new issues to retrieve
+        issue_retrieve = Set.new
+
+        # List of new relations to retrieve
+        relation_retrieve = Set.new
+
+        # Do a first pass to add all retrieved issues and add their id to the list of relations to fetch
         issues.each do |issue|
           add_issue(issue)
+          relation_retrieve.add(issue[:id])
+        end
+        # Do a second pass to add unseen parent issues to the new list. This is
+        # to avoid additional queries since in the first pass, the order may be
+        # such that the child tasks are seen before their parents
+        issues.each do |issue|
           next unless issue.parent_issue_id
-          to_retrieve.add(issue.parent_issue_id) unless @issue_ids.include?(issue.parent_issue_id)
+          issue_retrieve.add(issue.parent_issue_id) unless @issue_ids.include?(issue.parent_issue_id)
         end
         
-        # On the first iteration, get relations of all issues seen so far.
-        # On later iterations only retrieve of the newly loaded issues.
-        relation_retrieve = iterations == 1 ? @issue_ids : to_retrieve
+        # Get relations for newly loaded issues
+        logger.error(relation_retrieve.to_a)
         relations = IssueRelation.where("issue_from_id IN (:ids) OR issue_to_id IN (:ids)", :ids => relation_retrieve)
         relations.each do |relation|
           add_relation(relation)
+          # We should avoid fetching issues just because they are related /
+          # duplicated or copied, since those do not impede planning.
           next unless ['precedes', 'blocks'].include?(relation.relation_type)
-          to_retrieve.add(relation[:from]) unless @issue_ids.include?(relation[:from])
-          to_retrieve.add(relation[:to]) unless @issue_ids.include?(relation[:to])
+          issue_retrieve.add(relation[:issue_from_id]) unless @issue_ids.include?(relation[:issue_from_id])
+          issue_retrieve.add(relation[:issue_to_id]) unless @issue_ids.include?(relation[:issue_to_id])
         end
 
         # See if we're done
-        break if to_retrieve.size == 0
+        break if issue_retrieve.size == 0
 
         # Retrieve all new issues
         iterations += 1
-        issues = Issue.where("id IN (:ids) OR parent_id IN (:ids)", :ids => to_retrieve)
+        issues = Issue.where("id IN (:ids) OR parent_id IN (:ids)", :ids => issue_retrieve)
     end
     logger.info("Retrieved all issues and relations in #{iterations} iteration(s)")
 
