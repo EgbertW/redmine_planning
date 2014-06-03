@@ -1254,7 +1254,8 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
         x = this.options.margin.x + days * dw;
         y = this.viewbox.y;
 
-        var line = this.paper.path("M" + x + "," + -10000 + "L" + x + "," + 10000);
+        var max_x = Math.max(this.geometry_limits.x[1] + 1000, 100000);
+        var line = this.paper.path("M" + x + "," + 0 + "L" + x + "," + max_x);
         line.attr('title', this.formatDate(cur));
         lines.push(line);
 
@@ -1822,8 +1823,25 @@ PlanningIssue.prototype.update = function ()
     }
     else
     {
-        var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : rmp_getToday().subtract(base).days();
-        var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
+        // Take care of null dates
+        var start_date = this.start_date;
+        var due_date = this.due_date;
+        if (start_date === null && due_date === null)
+        {
+            start_date = rmp_getToday();
+            due_date = start_date.add(DateInterval.createDays(1));
+        }
+        else if (start_date === null && due_date !== null)
+        {
+            start_date = due_date.subtract(DateInterval.createDays(1));
+        }
+        else if (start_date !== null && due_date === null)
+        {
+            due_date = start_date.add(DateInterval.createDays(1));
+        }
+
+        var startDay = start_date.subtract(base).days();
+        var nDays = Math.max(1, due_date.subtract(start_date).days());
         this.geometry = {
             x: this.chart.options.margin.x + (startDay * this.chart.dayWidth()),
             y: this.chart.options.margin.y + this.idx * (this.chart.options.issue_height + this.chart.options.spacing.y),
