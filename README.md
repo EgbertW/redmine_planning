@@ -79,6 +79,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * Export chart to SVG
 
 # Version log
+* 0.7.5.1: Jun 3, 2014. Update on getting all related issues and another fix on configuration
 * 0.7.5: Jun 3, 2014. Fix issue #14. Also improved performance of relation retrieval and will now load all related issues such as parents. Without this, the planning cannot be fully done properly.
 * 0.7.4: May 27, 2014. Add zoom-in and zoom-out buttons
 * 0.7.3: May 27, 2014. Fix placement of tooltip in fullscreen and fix tooltip not showing when no description is set.
