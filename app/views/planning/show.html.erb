@@ -16,11 +16,10 @@
 # You should have received a copy of the GNU General Public License
 # along with redmine_planning. If not see <http://www.gnu.org/licenses/>.
 %>
-<% @gantt.view = self %>
 <div class="contextual">
 <% if !@query.new_record? && @query.editable_by?(User.current) %>
-  <%= link_to l(:button_edit), edit_query_path(@query, :gantt => 1), :class => 'icon icon-edit' %>
-  <%= delete_link query_path(@query, :gantt => 1) %>
+  <%= link_to l(:button_edit), edit_query_path(@query, :planning => 1), :class => 'icon icon-edit' %>
+  <%= delete_link query_path(@query, :planning => 1) %>
 <% end %>
 </div>
 
@@ -70,6 +69,22 @@
     Setting.plugin_redmine_planning.each do |k, v|
       plugin_settings[k] = v
     end
+
+    # Convert tracker IDs to tracker names
+    tracker_list= Tracker.find(:all)
+    trackers = {}
+    tracker_list.each do |tracker|
+      trackers[tracker[:id]] = tracker[:name]
+    end
+    keys = plugin_settings['tracker'].keys
+    keys.each do |key|
+      next if key == "Default"
+      next if not trackers.has_key?(key)
+      val = plugin_settings['tracker'][key]
+      plugin_settings['tracker'][trackers[key]] = val
+      plugin_settings['tracker'].delete(key)
+    end
+      
     plugin_settings[:project] = @project[:identifier] unless @project.blank?
     plugin_settings[:date_format] = Setting[:date_format]
     plugin_settings[:date_format] = ::I18n.t('date.formats.default', options) unless not plugin_settings[:date_format].blank?
