@@ -157,6 +157,7 @@ PlanningIssue.prototype.showTooltip = function ()
         x = pos.left;
 
     d.addClass('planning_tooltip')
+    .attr('lang', 'en')
     .css({
         'left': x,
         'top': y,
@@ -177,10 +178,30 @@ PlanningIssue.prototype.showTooltip = function ()
     }
 
     var desc = this.description;
+
+    // Truncate description to don't fill the entire screen
     if (!desc)
         desc = "";
-    if (desc.length > 500)
-        desc = desc.substr(0, 300);
+    //if (desc.length > 500)
+    //    desc = desc.substr(0, 300);
+
+    // Replace HTML reserved characters with HTML entities
+    desc = desc.replace(/</g, "&lt;");
+    desc = desc.replace(/>/g, "&gt;");
+    desc = desc.replace(/&/g, "&amp;");
+    desc = desc.replace(/"/g, "&quot;");
+
+    // Replace line breaks with <br>
+    desc = desc.replace(/\n/g, "<br />");
+
+    // Make sure text is wrapped / hyphenated if the browser supports it. Break
+    // extremely long strings by forcefully adding &shy; markers.
+    var prev;
+    while (desc !== prev)
+    {
+        prev = desc;
+        desc = prev.replace(/([^\s&\-]{10,})([^\s&\-]{10,})/g, "$1&shy;$2");
+    }
 
     d.html(
         '<table>' +
@@ -2836,20 +2857,21 @@ PlanningIssue.prototype.draw = function ()
     {
         text_color = this.chart.getTrackerAttrib(this.tracker, 'text_color');
         n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
-        max_length = this.geometry.width / 8;
+        var available_font_height = Math.round(this.geometry.height * 0.6);
+        max_length = this.geometry.width / (0.8 * available_font_height);
         if (n.length > max_length)
-            n = n.substring(0, max_length) + "...";
+            n = n.substring(0, max_length) + "..";
         this.text = this.chart.paper.text(
             this.geometry.x + (this.geometry.width / 2),
-            this.geometry.y + (this.geometry.height / 2),
+            this.geometry.y + (this.geometry.height * 0.4),
             n
         );
         attribs = {
-            'font-size': 9,
+            'font-size': available_font_height + 'px',
             'cursor': 'move'
         };
         if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
-            attribs.stroke = text_color;
+            attribs.fill = text_color;
         this.text.attr(attribs);
         this.text.toFront();
         this.text.mousemove(this.changeCursor, this);
