@@ -2902,6 +2902,9 @@ PlanningIssue.prototype.draw = function ()
 
     if (this.parent_issue)
     {
+        if (!this.parent_issue.geometry)
+            this.parent_issue.update();
+
         if (this.parent_issue.geometry)
         {
             var x = Math.round(this.geometry.x + (this.geometry.width / 2.0));
