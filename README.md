@@ -86,6 +86,8 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 
 # Version log
 * 0.8.0-alpha May 29, 2014. Add list of issues on the left side of the chart.
+* 0.7.5: Jun 3, 2014. Fix issue #14. Also improved performance of relation retrieval and will now load all related issues such as parents. Without this, the planning cannot be fully done properly.
+* 0.7.4: May 27, 2014. Add zoom-in and zoom-out buttons
 * 0.7.3: May 27, 2014. Fix placement of tooltip in fullscreen and fix tooltip not showing when no description is set.
 * 0.7.2: May 27, 2014. Added support for progress visualization and manipulation
 * 0.7.1: May 26, 2014. Bug in relation to viewbox calculation fixed and date selection is back.
