@@ -67,21 +67,20 @@
     # Prepare settings passed along to javascript plugin
     plugin_settings = {}
     Setting.plugin_redmine_planning.each do |k, v|
-      plugin_settings[k] = v
+      plugin_settings[k.to_sym] = v
     end
 
     # Validate settings
     default = Setting.available_settings['plugin_redmine_planning']['default'].clone
     default.each do |key, value|
-      plugin_settings[key.to_sym] = value unless plugin_settings.has_key?(key.to_sym)
+      plugin_settings[key.to_sym] = value unless plugin_settings.has_key?(key.to_sym) or plugin_settings.has_key?(key.to_s)
     end
 
     plugin_settings[:tracker]['Default'] = default[:tracker]['Default'] if not plugin_settings[:tracker].has_key?('Default')
 
     # Remove all old configuration
     plugin_settings.each do |key, value|
-      sym = key.to_sym
-      plugin_settings.delete(sym) unless default.has_key?(sym)
+      plugin_settings.delete(key) unless default.has_key?(key.to_sym) or default.has_key?(key.to_s)
     end
 
     # Get full list of trackers
