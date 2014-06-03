@@ -4,7 +4,7 @@ default = Setting.available_settings['plugin_redmine_planning']['default'].clone
 
 # Make sure that all required values exist in the settings
 default.each do |key, value|
-  @settings[sym.to_sym] = value unless @settings.has_key?(key.to_sym)
+  @settings[key.to_sym] = value unless @settings.has_key?(key.to_sym)
 end
 
 @settings[:tracker]['Default'] = default[:tracker]['Default'] if not @settings[:tracker].has_key?('Default')

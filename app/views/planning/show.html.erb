@@ -64,19 +64,48 @@
     options = {}
     options[:locale] = User.current.language unless User.current.language.blank?
 
-    # Provide project and date format to Javascript
+    # Prepare settings passed along to javascript plugin
     plugin_settings = {}
     Setting.plugin_redmine_planning.each do |k, v|
       plugin_settings[k] = v
     end
 
-    # Convert tracker IDs to tracker names
+    # Validate settings
+    default = Setting.available_settings['plugin_redmine_planning']['default'].clone
+    default.each do |key, value|
+      plugin_settings[key.to_sym] = value unless plugin_settings.has_key?(key.to_sym)
+    end
+
+    plugin_settings[:tracker]['Default'] = default[:tracker]['Default'] if not plugin_settings[:tracker].has_key?('Default')
+
+    # Convert tracker names to tracker IDs
+    k = plugin_settings[:tracker].keys
+    k.each do |key|
+      next if key == "Default"
+      if key.to_i == 0
+      then
+        val = plugin_settings[:tracker][key]
+        tracker = Tracker.where(:name => key).first
+        plugin_settings[:tracker].delete(key)
+        plugin_settings[:tracker][tracker[:id]] = val if tracker
+      end
+    end
+
+    # Remove all old configuration
+    plugin_settings.each do |key, value|
+      sym = key.to_sym
+      plugin_settings.delete(sym) unless default.has_key?(sym)
+    end
+
+    # Get full list of trackers
     tracker_list= Tracker.find(:all)
     trackers = {}
     tracker_list.each do |tracker|
       trackers[tracker[:id]] = tracker[:name]
     end
-    keys = plugin_settings['tracker'].keys
+
+    # Convert tracker IDs to tracker names
+    keys = plugin_settings[:tracker].keys
     keys.each do |key|
       next if key == "Default"
       next if not trackers.has_key?(key)
@@ -85,6 +114,7 @@
       plugin_settings['tracker'].delete(key)
     end
       
+    # Provide project and date format to Javascript
     plugin_settings[:project] = @project[:identifier] unless @project.blank?
     plugin_settings[:date_format] = Setting[:date_format]
     plugin_settings[:date_format] = ::I18n.t('date.formats.default', options) unless not plugin_settings[:date_format].blank?
