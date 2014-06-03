@@ -2282,7 +2282,7 @@ PlanningIssue.prototype.draw = function ()
         (sx > this.chart.viewbox.x + this.chart.viewbox.w) ||
         (ex < this.chart.viewbox.x) ||
         (sy > this.chart.viewbox.y + this.chart.viewbox.h) ||
-        (ey < this.chart.viewbox.y + this.chart.options.margin.y * 2)
+        (ey < this.chart.viewbox.y + this.chart.options.margin.y)
     )
     {
         if (this.element)
