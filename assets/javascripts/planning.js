@@ -164,15 +164,18 @@ PlanningIssue.prototype.showTooltip = function ()
     });
 
     var parent_issue = 'none';
+    var url;
     if (this.parent_issue)
     {
-        parent_issue = '<a href="/issues/' + this.parent_issue.id + '" target="_blank">' +
+        url = redmine_planning_settings.urls.root + 'issues/' + this.parent_issue.id;
+        parent_issue = '<a href="' + url + '" target="_blank">' +
             this.parent_issue.tracker + ' #' + this.parent_issue.id + ': ' + this.parent_issue.name +
             '</a>';
     }
     else if (this.parent_id)
     {
-        parent_issue = '<a href="/issues/' + this.parent_id + '" target="_blank">' +
+        url = redmine_planning_settings.urls.root + 'issues/' + this.parent_id;
+        parent_issue = '<a href="' + url + '" target="_blank">' +
             "#" + this.parent_id + " (" + this.t('unavailable') + ")";
     }
 
@@ -182,10 +185,13 @@ PlanningIssue.prototype.showTooltip = function ()
     if (desc.length > 500)
         desc = desc.substr(0, 300);
 
+    var prj_url = redmine_planning_settings.urls.root + 'projects/' + this.project_identifier;
+    url = redmine_planning_settings.urls.root + 'issues/' + this.id;
+
     d.html(
         '<table>' +
-        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="/issues/' + this.id + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +
-        '<tr><th>' + this.t('project') + ':</th><td><a href="/projects/' + this.project_identifier + '" target="_blank">' + this.project + '</a></td></tr>' + 
+        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="' + url + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +
+        '<tr><th>' + this.t('project') + ':</th><td><a href="' + prj_url + '" target="_blank">' + this.project + '</a></td></tr>' + 
         '<tr><th>' + this.t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
         '<tr><th>' + this.t('start_date') + ':</th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
         '<tr><th>' + this.t('due_date') + ':</th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
