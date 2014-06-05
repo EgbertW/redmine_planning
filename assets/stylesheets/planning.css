@@ -47,6 +47,13 @@ div#planning_list .table
     height:             100%;
 }
 
+div#planning_list .ui-resizable-e
+{
+    background-color:   transparent;
+    width:              20px;
+}
+
+
 div #planning_list .planning_list_row_container
 {
 }
@@ -200,9 +207,4 @@ div.planning_date_tooltip p
     height:             100%;
     background-color:   white;
     z-index:            100;
-}
-
-.resize-helper
-{
-    z-index:            50;
 }

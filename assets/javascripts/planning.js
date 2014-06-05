@@ -1324,6 +1324,7 @@ PlanningChart.prototype.draw = function (redraw)
     this.drawIssues();
 
     // Draw the issue list
+    console.log('draw chart');
     this.drawList();
 };
 
@@ -1361,6 +1362,10 @@ PlanningChart.prototype.drawIssues = function ()
 
 PlanningChart.prototype.drawList = function ()
 {
+    // Destroy UI-resizable before removing all HTML
+    if (this.issue_list.data('ui-resizable'))
+        this.issue_list.resizable('destroy');
+
     this.issue_list.html('');
 
     var ikeys = Object.keys(this.issues);
@@ -1524,12 +1529,13 @@ PlanningChart.prototype.drawList = function ()
     });
 
     var list = this.issue_list;
+    console.log('adding list event');
     list.resizable({
-        ghost: true,
         handles: "e",
-        helper: 'resize-helper',
+        minWidth: 50,
         start: function (evt, ui)
         {
+            console.log('setting max');
             var max = list.find('.planning_issue').first().outerWidth();
             list.resizable('option', 'maxWidth', max);
         }
