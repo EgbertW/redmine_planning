@@ -1353,7 +1353,6 @@ PlanningChart.prototype.draw = function (redraw)
     this.drawIssues();
 
     // Draw the issue list
-    console.log('draw chart');
     this.drawList();
 };
 
@@ -1559,13 +1558,11 @@ PlanningChart.prototype.drawList = function ()
     });
 
     var list = this.issue_list;
-    console.log('adding list event');
     list.resizable({
         handles: "e",
         minWidth: 50,
         start: function (evt, ui)
         {
-            console.log('setting max');
             var max = list.find('.planning_issue').first().outerWidth();
             list.resizable('option', 'maxWidth', max);
         }
