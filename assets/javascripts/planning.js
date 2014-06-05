@@ -157,6 +157,7 @@ PlanningIssue.prototype.showTooltip = function ()
         x = pos.left;
 
     d.addClass('planning_tooltip')
+    .attr('lang', 'en')
     .css({
         'left': x,
         'top': y,
@@ -164,32 +165,59 @@ PlanningIssue.prototype.showTooltip = function ()
     });
 
     var parent_issue = 'none';
+    var url;
     if (this.parent_issue)
     {
-        parent_issue = '<a href="/issues/' + this.parent_issue.id + '" target="_blank">' +
+        url = redmine_planning_settings.urls.root + 'issues/' + this.parent_issue.id;
+        parent_issue = '<a href="' + url + '" target="_blank">' +
             this.parent_issue.tracker + ' #' + this.parent_issue.id + ': ' + this.parent_issue.name +
             '</a>';
     }
     else if (this.parent_id)
     {
-        parent_issue = '<a href="/issues/' + this.parent_id + '" target="_blank">' +
+        url = redmine_planning_settings.urls.root + 'issues/' + this.parent_id;
+        parent_issue = '<a href="' + url + '" target="_blank">' +
             "#" + this.parent_id + " (" + this.t('unavailable') + ")";
     }
 
     var desc = this.description;
+
+    // Truncate description to don't fill the entire screen
     if (!desc)
         desc = "";
-    if (desc.length > 500)
-        desc = desc.substr(0, 300);
+    //if (desc.length > 500)
+    //    desc = desc.substr(0, 300);
+
+    // Replace HTML reserved characters with HTML entities
+    desc = desc.replace(/</g, "&lt;");
+    desc = desc.replace(/>/g, "&gt;");
+    desc = desc.replace(/&/g, "&amp;");
+    desc = desc.replace(/"/g, "&quot;");
+
+    // Replace line breaks with <br>
+    desc = desc.replace(/\n/g, "<br />");
+
+    // Make sure text is wrapped / hyphenated if the browser supports it. Break
+    // extremely long strings by forcefully adding &shy; markers.
+    var prev;
+    while (desc !== prev)
+    {
+        prev = desc;
+        desc = prev.replace(/([^\s&\-]{10,})([^\s&\-]{10,})/g, "$1&shy;$2");
+    }
+
+    var prj_url = redmine_planning_settings.urls.root + 'projects/' + this.project_identifier;
+    url = redmine_planning_settings.urls.root + 'issues/' + this.id;
 
     d.html(
         '<table>' +
-        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="/issues/' + this.id + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +
-        '<tr><th>' + this.t('project') + ':</th><td><a href="/projects/' + this.project_identifier + '" target="_blank">' + this.project + '</a></td></tr>' + 
+        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="' + url + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +
+        '<tr><th>' + this.t('project') + ':</th><td><a href="' + prj_url + '" target="_blank">' + this.project + '</a></td></tr>' + 
         '<tr><th>' + this.t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
         '<tr><th>' + this.t('start_date') + ':</th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
         '<tr><th>' + this.t('due_date') + ':</th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
         '<tr><th>' + this.t('leaf_task') + ':</th><td>' + (this.leaf ? this.t('yes') : this.t('no')) + '</td></tr>' +
+        '<tr><th>' + this.t('is_closed') + ':</th><td>' + (this.closed ? this.t('yes') : this.t('no')) + '</td></tr>' +
         '<tr><th>' + this.t('field_done_ratio') + ':</th><td>' + (this.progress) + '%</td></tr>' +
         '<tr><th>' + this.t('description') + ':</th><td>' + desc + '</td></tr>' 
     );
@@ -1254,7 +1282,8 @@ PlanningChart.prototype.drawHeader = function (start_date, end_date)
         x = this.options.margin.x + days * dw;
         y = this.viewbox.y;
 
-        var line = this.paper.path("M" + x + "," + -10000 + "L" + x + "," + 10000);
+        var max_x = Math.max(this.geometry_limits.x[1] + 1000, 100000);
+        var line = this.paper.path("M" + x + "," + 0 + "L" + x + "," + max_x);
         line.attr('title', this.formatDate(cur));
         lines.push(line);
 
@@ -1433,7 +1462,8 @@ PlanningChart.prototype.drawList = function ()
         issue.list_row.children().css({
             'height': dom_row_height - 3,
             'line-height': dom_row_height - 3 + 'px',
-            'font-size': font_size + 'px'
+            'font-size': font_size + 'px',
+            'text-decoration': issue.closed ? 'line-through' : 'none'
         });
 
         issue.list_row.css({
@@ -1700,6 +1730,7 @@ function PlanningIssue(data)
     this.id = data.id;
     this.tracker = data.tracker;
     this.leaf = data.leaf ? true : false;
+    this.closed = data.closed ? true : false;
     this.progress = data.percent_done;
     this.parent_id = data.parent;
     this.parent_issue = null;
@@ -1828,8 +1859,25 @@ PlanningIssue.prototype.update = function ()
     }
     else
     {
-        var startDay = this.start_date !== null ? this.start_date.subtract(base).days() : rmp_getToday().subtract(base).days();
-        var nDays = this.due_date !== null ? Math.max(1, this.due_date.subtract(this.start_date).days()) : 1;
+        // Take care of null dates
+        var start_date = this.start_date;
+        var due_date = this.due_date;
+        if (start_date === null && due_date === null)
+        {
+            start_date = rmp_getToday();
+            due_date = start_date.add(DateInterval.createDays(1));
+        }
+        else if (start_date === null && due_date !== null)
+        {
+            start_date = due_date.subtract(DateInterval.createDays(1));
+        }
+        else if (start_date !== null && due_date === null)
+        {
+            due_date = start_date.add(DateInterval.createDays(1));
+        }
+
+        var startDay = start_date.subtract(base).days();
+        var nDays = Math.max(1, due_date.subtract(start_date).days());
         this.geometry = {
             x: this.chart.options.margin.x + (startDay * this.chart.dayWidth()),
             y: this.chart.options.margin.y + this.idx * (this.chart.options.issue_height + this.chart.options.spacing.y),
@@ -2717,7 +2765,7 @@ PlanningIssue.prototype.draw = function ()
         (sx > this.chart.viewbox.x + this.chart.viewbox.w) ||
         (ex < this.chart.viewbox.x) ||
         (sy > this.chart.viewbox.y + this.chart.viewbox.h) ||
-        (ey < this.chart.viewbox.y + this.chart.options.margin.y * 2)
+        (ey < this.chart.viewbox.y + this.chart.options.margin.y)
     )
     {
         if (this.element)
@@ -2824,20 +2872,24 @@ PlanningIssue.prototype.draw = function ()
     {
         text_color = this.chart.getTrackerAttrib(this.tracker, 'text_color');
         n = this.tracker.substr(0, 1) + "#" + this.id + ": " + this.name;
-        max_length = this.geometry.width / 8;
+        var available_font_height = Math.round(this.geometry.height * 0.6);
+        max_length = this.geometry.width / (0.8 * available_font_height);
         if (n.length > max_length)
-            n = n.substring(0, max_length) + "...";
+            n = n.substring(0, max_length) + "..";
         this.text = this.chart.paper.text(
             this.geometry.x + (this.geometry.width / 2),
-            this.geometry.y + (this.geometry.height / 2),
+            this.geometry.y + (this.geometry.height * 0.4),
             n
         );
         attribs = {
-            'font-size': 9,
+            'font-size': available_font_height + 'px',
             'cursor': 'move'
         };
         if (text_color != "#000" && text_color != "black" && text_color !=" #000000")
-            attribs.stroke = text_color;
+            attribs.fill = text_color;
+        if (this.closed)
+            attribs['text-decoration'] = "line-through";
+
         this.text.attr(attribs);
         this.text.toFront();
         this.text.mousemove(this.changeCursor, this);
@@ -2862,6 +2914,9 @@ PlanningIssue.prototype.draw = function ()
 
     if (this.parent_issue)
     {
+        if (!this.parent_issue.geometry)
+            this.parent_issue.update();
+
         if (this.parent_issue.geometry)
         {
             var x = Math.round(this.geometry.x + (this.geometry.width / 2.0));

@@ -18,6 +18,7 @@ en:
     due_date: "Due date"
     description: "Description"
     leaf_task: "Leaf task"
+    is_closed: "Closed"
     yes: "yes"
     no: "no"
     sort: "Sort issues"

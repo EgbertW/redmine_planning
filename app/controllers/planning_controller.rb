@@ -26,7 +26,6 @@ class PlanningController < ApplicationController
 
   before_filter :find_issue, :authorize, :only => [:create_relation]
 
-  helper :gantt
   helper :issues
   helper :projects
   helper :queries
@@ -34,11 +33,8 @@ class PlanningController < ApplicationController
 
   def show
     Redmine::Plugin.mirror_assets(:redmine_planning)
-    @gantt = Redmine::Helpers::Gantt.new(params)
-    @gantt.project = @project
     retrieve_query
     @query.group_by = nil
-    @gantt.query = @query if @query.valid?
   end
 
   def save
@@ -75,75 +71,136 @@ class PlanningController < ApplicationController
     end
   end
 
-  def issue_compare(x, y)
-    if x.root_id == y.root_id
-      x.lft <=> y.lft
-    else
-      x.root_id <=> y.root_id
-    end
+  def add_issue(issue)
+    return if @issue_ids.include?(issue[:id])
+    prj = @project_ids[issue[:project_id]]
+    tracker = @tracker_ids[issue.tracker_id]
+    @issue_ids.add(issue[:id])
+    @response[:issues].push({
+        :id => issue[:id],
+        :start_date => issue[:start_date],
+        :due_date => issue[:due_date],
+        :project_id => issue[:project_id],
+        :project_identifier => prj[:identifier],
+        :project_name => prj[:name],
+        :tracker => tracker,
+        :name => issue[:subject],
+        :description => issue[:description],
+        :leaf => issue.leaf?,
+        :parent => issue.parent_issue_id,
+        :percent_done => issue.done_ratio,
+        :closed => issue.closed?,
+        :status => issue.status.name
+    })
+  end
+  
+  def add_relation(relation)
+    return if @relation_ids.include?(relation[:id])
+    @relation_ids.add(relation[:id])
+    @response[:relations].push({
+        :id => relation[:id],
+        :from => relation[:issue_from_id],
+        :to => relation[:issue_to_id],
+        :type => relation[:relation_type],
+        :delay => relation[:delay]
+    })
   end
 
   def issues
-    @gantt = Redmine::Helpers::Gantt.new(params)
-    @gantt.project = @project
     retrieve_query
     @query.group_by = nil
-    @gantt.query = @query if @query.valid?
 
-    projects = @gantt.projects
-    response = {:issues => [], :relations => []}
-    relations = {}
-    trackers = Tracker.find(:all)
+    @response = {:issues => [], :relations => [], :projects => [], :versions => [], :trackers => []}
 
-    project_ids = {}
+    # Retrieve all projects
+    # TODO: Respond only with projects involved in the issues returned and
+    # their ancestors
+    @project_ids = {}
+    projects = Project.find(:all)
     projects.each do |prj|
-        project_ids[prj.id] = {:identifier => prj.identifier, :name => prj.name}
-    end
-
-    tracker_ids = {}
-    trackers.each do |tracker|
-        tracker_ids[tracker.id] = tracker[:name]
-    end
-
-    Project.project_tree(projects) do |project, level|
-      issues = @gantt.project_issues(project)
-      issues.sort! { |a, b| issue_compare(a, b) }
-      issues.each do |issue|
-        prj = project_ids[issue[:project_id]]
-        tracker = tracker_ids[issue.tracker_id]
-        response[:issues].push({
-            :id => issue[:id],
-            :start_date => issue[:start_date],
-            :due_date => issue[:due_date],
-            :project_id => issue[:project_id],
-            :project_identifier => prj[:identifier],
-            :project_name => prj[:name],
-            :tracker => tracker,
-            :name => issue[:subject],
-            :description => issue[:description],
-            :leaf => issue.leaf?,
-            :parent => issue.parent_issue_id,
-            :percent_done => issue.done_ratio
+        @project_ids[prj.id] = {:identifier => prj.identifier, :name => prj.name}
+        @response[:projects].push({
+            :id => prj.id,
+            :name => prj.name,
+            :identifier => prj.identifier
         })
-        issue.relations.each do |relation|
-            relations[relation[:id]] = {
-                :id => relation[:id],
-                :from => relation[:issue_from_id],
-                :to => relation[:issue_to_id],
-                :type => relation[:relation_type],
-                :delay => relation[:delay]
-            }
-        end
-      end
     end
 
-    # Add values from hash. Relations are not added to the array right away
-    # because that may result in duplicates, now they are unduplicated by their
-    # id.
-    response[:relations] = relations.values
+    # Retrieve all trackers
+    # TODO: Respond only with trackers relevant for this project
+    trackers = Tracker.find(:all)
+    @tracker_ids = {}
+    trackers.each do |tracker|
+        @tracker_ids[tracker.id] = tracker[:name]
+        @response[:trackers].push({
+            :id => tracker.id,
+            :name => tracker.name,
+        })
+    end
+
+    # Retrieve all versions
+    # TODO: Respond only with versions relevant for this project
+    versions = Version.find(:all)
+    @version_ids = {}
+    versions.each do |version|
+        @version_ids[version.id] = version[:name]
+        @response[:versions].push({
+            :id => version.id,
+            :name => version.name,
+            :start_date => version.start_date,
+            :due_date => version.due_date
+        })
+    end
+
+    # Populate initial list of issues
+    @issue_ids = Set.new
+    @relation_ids = Set.new
+    issues = @query.issues
+
+    iterations = 1
+    while true
+        # List of new issues to retrieve
+        issue_retrieve = Set.new
+
+        # List of new relations to retrieve
+        relation_retrieve = Set.new
+
+        # Do a first pass to add all retrieved issues and add their id to the list of relations to fetch
+        issues.each do |issue|
+          add_issue(issue)
+          relation_retrieve.add(issue[:id])
+        end
+        # Do a second pass to add unseen parent issues to the new list. This is
+        # to avoid additional queries since in the first pass, the order may be
+        # such that the child tasks are seen before their parents
+        issues.each do |issue|
+          next unless issue.parent_issue_id
+          issue_retrieve.add(issue.parent_issue_id) unless @issue_ids.include?(issue.parent_issue_id)
+        end
+        
+        # Get relations for newly loaded issues
+        logger.error(relation_retrieve.to_a)
+        relations = IssueRelation.where("issue_from_id IN (:ids) OR issue_to_id IN (:ids)", :ids => relation_retrieve)
+        relations.each do |relation|
+          add_relation(relation)
+          # We should avoid fetching issues just because they are related /
+          # duplicated or copied, since those do not impede planning.
+          next unless ['precedes', 'blocks'].include?(relation.relation_type)
+          issue_retrieve.add(relation[:issue_from_id]) unless @issue_ids.include?(relation[:issue_from_id])
+          issue_retrieve.add(relation[:issue_to_id]) unless @issue_ids.include?(relation[:issue_to_id])
+        end
+
+        # See if we're done
+        break if issue_retrieve.size == 0
+
+        # Retrieve all new issues
+        iterations += 1
+        issues = Issue.where("id IN (:ids) OR parent_id IN (:ids)", :ids => issue_retrieve)
+    end
+    logger.info("Retrieved all issues and relations in #{iterations} iteration(s)")
 
     respond_to do |format|
-      format.json { render :json => response }
+      format.json { render :json => @response }
     end
   end
 
