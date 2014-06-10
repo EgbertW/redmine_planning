@@ -29,6 +29,13 @@ if (!Object.keys)
     };
 }
 
+Function.prototype.inherits = function (parent)
+{
+    var keys = Object.keys(parent.prototype);
+    for (var iter = 0; iter < keys.length; ++iter)
+        this.prototype[keys[iter]] = parent.prototype[keys[iter]];
+};
+
 /* DateInterval class definition */
 function DateInterval(ms)
 {
@@ -407,6 +414,8 @@ function PlanningChart(options)
     var relating = null;
     this.issues = {'length': 0};
     this.relations = {'length': 0};
+    this.projects = {'length': 0 };
+    this.milestones = {'length': 0};
     this.changed = {};
     this.setBaseDate(this.options.base_date ? this.options.base_date : rmp_getToday());
     this.container = jQuery('#' + this.options.target);
@@ -1141,6 +1150,22 @@ PlanningChart.prototype.formatDate = function (date)
     return fmt;
 };
 
+PlanningChart.prototype.addProject = function (project)
+{
+    if (this.projects[project.id])
+        return;
+
+    project.setChart(this, this.projects.length++);
+    this.projects[project.id] = project;
+};
+
+PlanningChart.prototype.removeProject = function (id)
+{
+    if (this.projects[id])
+    {
+        delete this.projects[id];
+    }
+};
 
 PlanningChart.prototype.addIssue = function (issue)
 {
@@ -1591,8 +1616,34 @@ PlanningChart.prototype.analyzeHierarchy = function ()
 {
     // Reset and initialize all relation arrays
     var ikeys = Object.keys(this.issues);
+    var pkeys = Object.keys(this.projects);
     var k; // Key iterator
     var iter; // Array iterator
+    var prj; // Project reference
+
+    for (iter = 0; iter < pkeys.length; ++iter)
+    {
+        if (pkeys[iter] == "length")
+            continue;
+
+        this.projects[pkeys[iter]].children = [];
+        this.projects[pkeys[iter]].issues = [];
+    }
+
+    for (iter = 0; iter < pkeys.length; ++iter)
+    {
+        if (pkeys[iter] == "length")
+            continue;
+
+        prj = this.projects[pkeys[iter]];
+
+        if (prj.parent_id)
+        {
+            this.projects[prj.parent_id].children.push(prj);
+            prj.parent_project = this.projects[prj.parent_id];
+        }
+    }
+
     for (iter = 0; iter < ikeys.length; ++iter)
     {
         if (ikeys[iter] == "length")
@@ -1600,6 +1651,7 @@ PlanningChart.prototype.analyzeHierarchy = function ()
 
         this.issues[ikeys[iter]].children = [];
     }
+
     for (iter = 0; iter < ikeys.length; ++iter)
     {
         k = ikeys[iter];
@@ -1612,6 +1664,12 @@ PlanningChart.prototype.analyzeHierarchy = function ()
         {
             this.issues[k].parent_issue = this.issues[this.issues[k].parent_id];
             this.issues[k].parent_issue.children.push(this.issues[k]);
+        }
+
+        if (this.issues[k].project_id && this.projects[this.issues[k].project_id])
+        {
+            this.projects[this.issues[k].project_id].children.push(this.issues[k]);
+            this.issues[k].project = this.projects[this.issues[k].project_id];
         }
     }
 
@@ -1705,6 +1763,26 @@ PlanningChart.prototype.updateIssue = function (id, response)
         }
     }
 };
+
+/* Project class definition */
+function PlanningProject(data)
+{
+    this.id = data.id;
+    this.name = data.name;
+    this.identifier = data.identifier;
+    this.parent_id = data.parent_id;
+    this.children = [];
+    this.issues = [];
+
+    this.chart = null;
+    this.idx = null;
+}
+
+PlanningProject.prototype.setChart = function (chart, idx)
+{
+    this.chart = chart;
+    this.idx = idx;
+}
 
 /* Issue class definition */
 function PlanningIssue(data)
@@ -3237,6 +3315,9 @@ function updateIssues(json)
     rm_chart.reset();
 
     var iter;
+    for (iter = 0; iter < json.projects.length; ++iter)
+        rm_chart.addProject(new PlanningProject(json.projects[iter]));
+
     for (iter = 0; iter < json.issues.length; ++iter)
         rm_chart.addIssue(new PlanningIssue(json.issues[iter]));
 

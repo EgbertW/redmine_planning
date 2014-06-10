@@ -118,11 +118,15 @@ class PlanningController < ApplicationController
     @project_ids = {}
     projects = Project.find(:all)
     projects.each do |prj|
+        next unless prj.active?
         @project_ids[prj.id] = {:identifier => prj.identifier, :name => prj.name}
         @response[:projects].push({
             :id => prj.id,
             :name => prj.name,
-            :identifier => prj.identifier
+            :identifier => prj.identifier,
+            :parent_id => prj.parent.nil? ? nil : prj.parent.id,
+            :start_date => prj.start_date,
+            :due_date => prj.due_date
         })
     end
 
