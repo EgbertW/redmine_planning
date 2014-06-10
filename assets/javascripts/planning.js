@@ -127,6 +127,26 @@ PlanningIssue.prototype.showTooltip = function ()
 {
     var $ = jQuery;
     var issue = this;
+    var d = $('.planning_tooltip');
+
+    if (d.length && d.data('issue_id') === this.id)
+        return;
+
+    if (this.chart.tooltip_timer)
+    {
+        clearInterval(this.chart.tooltip_timer);
+        delete this.chart.tooltip_timer;
+    }
+
+    this.chart.tooltip_timer = setTimeout(function () {
+        issue._showTooltip();
+    }, this.chart.options['tooltip_timeout']);
+}
+
+PlanningIssue.prototype._showTooltip = function ()
+{
+    var $ = jQuery;
+    var issue = this;
     
     var d = $('.planning_tooltip');
     if (d.length)
@@ -252,6 +272,7 @@ function PlanningChart(options)
         spacing: {x: 10, y: 10},
         issue_resize_border: 3,
         date_format: '%d/%m/%Y',
+        tooltip_timeout: 500,
         month_names: [null, 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
         abbr_month_names: [null, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
         project: '',
