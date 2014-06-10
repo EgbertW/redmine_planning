@@ -216,6 +216,9 @@ PlanningIssue.prototype.showTooltip = function ()
     var prj_url = redmine_planning_settings.urls.root + 'projects/' + this.project_identifier;
     url = redmine_planning_settings.urls.root + 'issues/' + this.id;
 
+    var prj_url = redmine_planning_settings.urls.root + 'projects/' + this.project_identifier;
+    url = redmine_planning_settings.urls.root + 'issues/' + this.id;
+
     d.html(
         '<table>' +
         '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="' + url + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +

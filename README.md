@@ -86,6 +86,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 
 # Version log
 * 0.8.0-alpha May 29, 2014. Add list of issues on the left side of the chart.
+* 0.7.6: Jun 10, 2014. Merged French translation in. Fixed missing translation. Thanks to pull requests #18 and #19
 * 0.7.5.1: Jun 3, 2014. Update on getting all related issues and another fix on configuration
 * 0.7.5: Jun 3, 2014. Fix issue #14. Also improved performance of relation retrieval and will now load all related issues such as parents. Without this, the planning cannot be fully done properly.
 * 0.7.4: May 27, 2014. Add zoom-in and zoom-out buttons
