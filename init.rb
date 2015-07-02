@@ -1,5 +1,5 @@
 # Copyright 2014 Egbert van der Wal <egbert@assistobot.com>
-# 
+#
 # This file is part of redmine_planning
 #
 # redmine_planning is free software: you can redistribute it and/or modify
@@ -16,7 +16,6 @@
 # along with redmine_planning. If not see <http://www.gnu.org/licenses/>.
 
 require 'redmine'
-
 Rails.configuration.to_prepare do
   require 'planning_hooks'
 end
@@ -118,5 +117,5 @@ Redmine::Plugin.register :redmine_planning do
     },
     :partial => 'planning/planning_settings';
 
-  menu :project_menu, :redmine_planning, { :controller => :planning, :action => :show }, :caption => 'Plan', :after => :gantt, :param => :project_id
+    menu :project_menu, :redmine_planning, { :controller => :planning, :action => :show }, :caption => :'planning.caption', :after => :gantt, :param => :project_id
 end
