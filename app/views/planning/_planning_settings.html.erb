@@ -76,7 +76,7 @@ end
   <legend><strong>Tracker attributes</strong></legend>
   <dl>
 <% d_settings = @settings[:tracker]['Default'] %>
-<% Tracker.find(:all).each do |tracker| %>
+<% Tracker.find_each do |tracker| %>
   <% t_settings = @settings[:tracker][tracker[:id]] %>
   <dt><strong><%= tracker[:name] %></strong></dt>
   <dd>
