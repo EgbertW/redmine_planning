@@ -85,7 +85,7 @@ When you hit the left or right edge of the rectangles the cursor will indicate t
 * Export chart to SVG
 
 # Version log
-* 1.0.0-beta September 28, 2015. Fix redmine 3.x compatibility, add Russian, Czech, Turkish and Polish translation.
+* 1.0.0-beta September 28, 2015. New issue management interface. Fix redmine 3.x compatibility, add Russian, Czech, Turkish and Polish translation.
 * 0.8.0-alpha May 29, 2014. Add list of issues on the left side of the chart.
 * 0.7.6: Jun 10, 2014. Merged French translation in. Fixed missing translation. Thanks to pull requests #18 and #19. Address issue #20
 * 0.7.5.1: Jun 3, 2014. Update on getting all related issues and another fix on configuration
