@@ -233,6 +233,10 @@ PlanningIssue.prototype._showTooltip = function ()
         desc = prev.replace(/([^\s&\-]{10,})([^\s&\-]{10,})/g, "$1&shy;$2");
     }
 
+    // Limit length of description
+    if (desc.length > 1024)
+        desc = desc.substring(0, 1024);
+
     var prj_url = redmine_planning_settings.urls.root + 'projects/' + this.project_identifier;
     url = redmine_planning_settings.urls.root + 'issues/' + this.id;
 
