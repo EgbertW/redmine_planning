@@ -1,6 +1,7 @@
 ---
 fr:
   planning:
+    caption: "Plan"
     head_planning: "Planning"
     label_planning: "Planifier"
     center_on: "Centrer sur"

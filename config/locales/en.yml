@@ -1,6 +1,7 @@
 ---
 en:
   planning:
+    caption: "Plan"
     head_planning: "Planning"
     label_planning: "Plan projects"
     center_on: "Center on"

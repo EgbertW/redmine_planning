@@ -1,6 +1,7 @@
 ---
 nl:
   planning:
+    caption: "Plan"
     head_planning: "Planning"
     label_planning: "Plan projecten"
     center_on: "Centreer op"
