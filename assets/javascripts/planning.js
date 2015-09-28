@@ -1,5 +1,5 @@
 /*
-Copyright 2014 Egbert van der Wal <egbert@assistobot.com>
+Copyright 2014 Egbert van der Wal <egbert@robovalley.com>
 
 This file is part of redmine_planning
 
