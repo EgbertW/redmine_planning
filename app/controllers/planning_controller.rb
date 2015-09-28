@@ -48,16 +48,16 @@ class PlanningController < ApplicationController
           issue_list.push(issue)
       end
     end
-    
+
     # Give feedback, as no errors doesn't indicate nothing changed
-    response = {} 
+    response = {}
     issue_list.each do |issue|
       # It seems that when you save an issue, the state of the object may not be
       # equal to that in the database, due to validation correction. Especially
       # for parent tasks, a reload is needed.
       issue.reload
       response[issue.id] = {:start_date => issue.start_date, :due_date => issue.due_date}
-      
+
       # Add all parents as they might've been updated as well
       parent = issue.parent
       while not parent.nil? do
@@ -93,7 +93,7 @@ class PlanningController < ApplicationController
         :status => issue.status.name
     })
   end
-  
+
   def add_relation(relation)
     return if @relation_ids.include?(relation[:id])
     @relation_ids.add(relation[:id])
@@ -116,8 +116,7 @@ class PlanningController < ApplicationController
     # TODO: Respond only with projects involved in the issues returned and
     # their ancestors
     @project_ids = {}
-    projects = Project.find(:all)
-    projects.each do |prj|
+    Project.find_each do |prj|
         @project_ids[prj.id] = {:identifier => prj.identifier, :name => prj.name}
         @response[:projects].push({
             :id => prj.id,
@@ -128,9 +127,8 @@ class PlanningController < ApplicationController
 
     # Retrieve all trackers
     # TODO: Respond only with trackers relevant for this project
-    trackers = Tracker.find(:all)
     @tracker_ids = {}
-    trackers.each do |tracker|
+    Tracker.find_each do |tracker|
         @tracker_ids[tracker.id] = tracker[:name]
         @response[:trackers].push({
             :id => tracker.id,
@@ -140,9 +138,8 @@ class PlanningController < ApplicationController
 
     # Retrieve all versions
     # TODO: Respond only with versions relevant for this project
-    versions = Version.find(:all)
     @version_ids = {}
-    versions.each do |version|
+    Version.find_each do |version|
         @version_ids[version.id] = version[:name]
         @response[:versions].push({
             :id => version.id,
@@ -177,7 +174,7 @@ class PlanningController < ApplicationController
           next unless issue.parent_issue_id
           issue_retrieve.add(issue.parent_issue_id) unless @issue_ids.include?(issue.parent_issue_id)
         end
-        
+
         # Get relations for newly loaded issues
         logger.error(relation_retrieve.to_a)
         relations = IssueRelation.where("issue_from_id IN (:ids) OR issue_to_id IN (:ids)", :ids => relation_retrieve)
@@ -233,7 +230,7 @@ class PlanningController < ApplicationController
       }
     end
   end
-  
+
   private
   def find_project
     @issue = Issue.find(params[:id])

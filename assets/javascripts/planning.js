@@ -77,7 +77,7 @@ DateInterval.createSeconds = function (n)
 
 /* Inject DateInterval into Date class */
 Date.prototype.subtract = function (other)
-{ 
+{
     if (other instanceof Date)
         return new DateInterval(this - other);
     else if (other instanceof DateInterval)
@@ -147,7 +147,7 @@ PlanningIssue.prototype._showTooltip = function ()
 {
     var $ = jQuery;
     var issue = this;
-    
+
     var d = $('.planning_tooltip');
     if (d.length)
     {
@@ -170,8 +170,8 @@ PlanningIssue.prototype._showTooltip = function ()
     var fs = jQuery('#planning_fullscreen_overlay').length > 0;
     var s = this.chart.getScale();
     var pos = this.chart.chart_area.position();
-    var x = s[0] * (this.geometry.x - this.chart.viewbox.x) + pos.left;
-    var y = s[1] * (this.geometry.y - this.chart.viewbox.y + this.chart.options.issue_height + this.chart.options.spacing.y) + pos.top;
+    var x = s[0] * (this.geometry.x - this.chart.viewbox.x) + pos.left + 15;
+    var y = s[1] * (this.geometry.y - this.chart.viewbox.y + this.chart.options.issue_height + this.chart.options.spacing.y) + pos.top + 100;
 
     if (x < pos.left)
         x = pos.left;
@@ -209,15 +209,14 @@ PlanningIssue.prototype._showTooltip = function ()
     url = redmine_planning_settings.urls.root + 'issues/' + this.id;
 
     d.html(
-        '<table>' +
-        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="' + url + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +
-        '<tr><th>' + this.t('project') + ':</th><td><a href="' + prj_url + '" target="_blank">' + this.project + '</a></td></tr>' + 
-        '<tr><th>' + this.t('parent_task') + ':</th><td>' + parent_issue + '</td></tr>' +
-        '<tr><th>' + this.t('start_date') + ':</th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
-        '<tr><th>' + this.t('due_date') + ':</th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
-        '<tr><th>' + this.t('leaf_task') + ':</th><td>' + (this.leaf ? this.t('yes') : this.t('no')) + '</td></tr>' +
-        '<tr><th>' + this.t('field_done_ratio') + ':</th><td>' + (this.progress) + '%</td></tr>' +
-        '<tr><th>' + this.t('description') + ':</th><td>' + desc + '</td></tr>' 
+        '<table cellpadding="2">' +
+        '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="' + url + '" target="_blank">#' + this.id + '</a>: '+ this.name  +'</th></tr>' +
+        '<tr><th>' + this.t('project') + ': </th><td><a href="' + prj_url + '" target="_blank">' + this.project + '</a></td></tr>' +
+        '<tr><th>' + this.t('parent_task') + ': </th><td>' + parent_issue + '</td></tr>' +
+        '<tr><th>' + this.t('start_date') + ': </th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' +
+        '<tr><th>' + this.t('due_date') + ': </th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' +
+        '<tr><th>' + this.t('leaf_task') + ': </th><td>' + (this.leaf ? this.t('yes') : this.t('no')) + '</td></tr>' +
+        '<tr><th>' + this.t('field_done_ratio') + ': </th><td>' + (this.progress) + '%</td></tr>'
     );
 
     // Append to body and show to determine the final dimensions of the tooltip
@@ -790,7 +789,7 @@ PlanningChart.prototype.setupDOMElements = function ()
     jQuery('.planning_button').click(function ()
     {
         var button = jQuery(this);
-        var type = button.data('type'); 
+        var type = button.data('type');
         switch (type)
         {
             case "add_relation":
@@ -843,7 +842,7 @@ PlanningChart.prototype.toggleFullscreen = function ()
     {
         fs.children().removeClass('fullscreen');
 
-        this.container.append(tb, ch); 
+        this.container.append(tb, ch);
         fs.remove();
         button.removeClass(def.icon[1]).addClass(def.icon[0]);
     }
@@ -897,7 +896,7 @@ PlanningChart.prototype.getRelationAttributes = function (relation_type)
             attributes['arrow-end'] = "classic-wide-long";
         style = style.substr(0, style.length - 1);
     }
-    
+
     if (style != "-")
         attributes['stroke-dasharray'] = style;
 
@@ -951,7 +950,7 @@ PlanningChart.prototype.setViewBox = function (x, y, w, h)
             continue;
 
         if (
-            this.issues[k].due_date >= start_date && 
+            this.issues[k].due_date >= start_date &&
             this.issues[k].start_date < end_date &&
             this.issues[k].geometry.y >= this.viewbox.y + this.options.margin.y
         )
@@ -1080,7 +1079,7 @@ PlanningChart.prototype.removeRelation = function (id)
 PlanningChart.prototype.addBackground = function ()
 {
     // Add background to enable panning
-    this.bg = this.paper.rect(-10000, -10000, 20000, 20000, 5); 
+    this.bg = this.paper.rect(-10000, -10000, 20000, 20000, 5);
     this.bg.attr('fill', '#fff');
     this.bg.toBack();
 
@@ -1337,7 +1336,7 @@ PlanningChart.prototype.updateIssue = function (id, response)
     var new_due_date = new Date(response[id].due_date);
     new_start_date.resetTime();
     new_due_date.resetTime();
-    
+
     var update = [false, false];
     if (new_start_date.getTime() != issue.start_date.getTime())
     {
@@ -1656,9 +1655,9 @@ PlanningIssue.prototype.calculateLimits = function (direction, ctime)
         {
             limit = this.parent_issue.max_due_date;
             if (
-                limit !== null && 
+                limit !== null &&
                 (
-                    this.max_due_date === null || 
+                    this.max_due_date === null ||
                     limit < this.max_due_date
                 )
             )
@@ -1681,7 +1680,7 @@ PlanningIssue.prototype.calculateLimits = function (direction, ctime)
             continue;
         if (direction < 0 && type == "outgoing")
             continue;
-        
+
         for (k = 0; k < this.relations[type].length; ++k)
         {
             // Update min_start_date
@@ -1702,7 +1701,7 @@ PlanningIssue.prototype.calculateLimits = function (direction, ctime)
                         {
                             var own_min_start = r.fromIssue.min_due_date.subtract(duration);
                             if (
-                                this.min_start_date === null || 
+                                this.min_start_date === null ||
                                 own_min_start > this.min_start_date
                             )
                             {
@@ -1714,9 +1713,9 @@ PlanningIssue.prototype.calculateLimits = function (direction, ctime)
                     {
                         r.toIssue.calculateLimits(1, ctime);
                         if (
-                            r.toIssue.max_due_date !== null && 
+                            r.toIssue.max_due_date !== null &&
                             (
-                                this.max_due_date === null || 
+                                this.max_due_date === null ||
                                 r.toIssue.max_due_date < this.max_due_date
                             )
                         )
@@ -1739,9 +1738,9 @@ PlanningIssue.prototype.calculateLimits = function (direction, ctime)
                             limit = limit.add(DateInterval.createDays(r.delay + 1));
                         }
                         if (
-                            limit !== null && 
+                            limit !== null &&
                             (
-                                this.min_start_date === null || 
+                                this.min_start_date === null ||
                                 limit > this.min_start_date
                             )
                         )
@@ -1760,9 +1759,9 @@ PlanningIssue.prototype.calculateLimits = function (direction, ctime)
                             limit = limit.add(DateInterval.createDays(-r.delay - 1));
                         }
                         if (
-                            limit !== null && 
+                            limit !== null &&
                             (
-                                this.max_due_date === null || 
+                                this.max_due_date === null ||
                                 limit < this.max_due_date
                             )
                         )
@@ -2088,7 +2087,7 @@ PlanningIssue.prototype.dragStart = function (x, y, e)
     jQuery('.planning_tooltip').remove();
 
     var cursor = this.elem
-    
+
     this.dragging = true;
     this.chart.mode = "drag";
     this.backup();
@@ -2239,7 +2238,7 @@ PlanningIssue.prototype.progressStart = function (e)
     // The progress of a parent task depends on its children
     if (this.children.length)
         return;
-    
+
     // Milestones do not have progress (visualized)
     if (this.milestone.length)
         return;
@@ -2615,7 +2614,7 @@ PlanningIssueRelation.prototype.click = function (e)
 
 /**
  * Set the chart element to which this relation is attached
- * 
+ *
  * @return PlanningIssueRelation Provides fluent interface
  */
 PlanningIssueRelation.prototype.setChart = function (chart, idx)
@@ -2625,9 +2624,9 @@ PlanningIssueRelation.prototype.setChart = function (chart, idx)
     return this;
 };
 
-/** 
- * Draw the relation between two issues using a SVG path element 
- * 
+/**
+ * Draw the relation between two issues using a SVG path element
+ *
  * @return PlanningIssueRelation Provides fluent interface
  */
 PlanningIssueRelation.prototype.draw = function ()
@@ -2643,7 +2642,7 @@ PlanningIssueRelation.prototype.draw = function ()
         return;
 
     var from_geo = this.chart.issues[this.from].geometry;
-    var to_geo = this.chart.issues[this.to].geometry; 
+    var to_geo = this.chart.issues[this.to].geometry;
 
     if (
         (from_geo.x < this.chart.viewbox.x && to_geo.x < this.chart.viewbox.x) ||
@@ -2671,13 +2670,13 @@ PlanningIssueRelation.prototype.draw = function ()
 
     // Storage for path points
     var points = [];
-    
+
     // Starting point is outgoing issue
     points.push([
         from_geo.x + from_geo.width,
         from_geo.y + (from_geo.height / 2.0)
     ]);
-    
+
     // Extend from outgoing issue by set X-spacing
     points.push([
         points[0][0] + this.chart.options.spacing.x,
@@ -2689,7 +2688,7 @@ PlanningIssueRelation.prototype.draw = function ()
     if (to_geo.x < points[1][0])
     {
         // First the point just above the to-issue
-        var to_y = to_geo.y > from_geo.y ? 
+        var to_y = to_geo.y > from_geo.y ?
                 (to_geo.y - (this.chart.options.spacing.y / 2.0))
             :
                 (to_geo.y + to_geo.height + (this.chart.options.spacing.y / 2.0));
@@ -2720,7 +2719,7 @@ PlanningIssueRelation.prototype.draw = function ()
     // Form the path: start by moving to the proper location
     var action = "M";
     var path = "";
-    
+
     for (var point_idx = 0; point_idx < points.length; ++point_idx)
     {
         // Iterate over all points and add them to the path string
@@ -2801,7 +2800,7 @@ function on_create_relation(relation)
 
         // Update the id
         relation.id = response.relation.id;
-        
+
         // Draw the relation
         relation.draw();
     }, "json")
@@ -2855,12 +2854,12 @@ function on_set_progress(progress, old_progress)
         if (!response.success)
         {
             alert('Setting progress for issue ' + issue.id + ' failed');
-            issue.setProgress(old_progress); 
+            issue.setProgress(old_progress);
         }
     }, "json")
     .error(function () {
         alert('Setting progress for issue ' + issue.id + ' failed');
-        issue.setProgress(old_progress); 
+        issue.setProgress(old_progress);
     });
 }
 
@@ -2869,7 +2868,7 @@ var rm_chart;
 jQuery(function ()
 {
     var project = redmine_planning_settings.project;
-        
+
     // Set up some callbacks
     redmine_planning_settings.on_delete_relation = on_delete_relation;
     redmine_planning_settings.on_create_relation = on_create_relation;
@@ -2902,4 +2901,4 @@ jQuery(function ()
 
     //jQuery('.redmine_planning_toolbar_button_set').buttonset();
 
-}); 
+});

@@ -42,14 +42,14 @@ div.planning_tooltip
     background-color:   #fff;
     padding:            5;
     font-size:          8pt;
-    width:              400px;
+    width:              200px;
     z-index:            100;
     padding:            5px;
 }
 
 div.planning_tooltip table
 {
-    
+
 
 }
 div.planning_tooltip table,
@@ -58,7 +58,7 @@ div.planning_tooltip table th,
 div.planning_tooltip table td
 {
     margin:             0;
-    padding:            0;
+    padding:            0 3px;
     border-collapse:    0;
     border:             none;
 }
