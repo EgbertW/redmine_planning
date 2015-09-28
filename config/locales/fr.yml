@@ -19,6 +19,7 @@ fr:
     due_date: "Echéance"
     description: "Description"
     leaf_task: "Tâche fille"
+    is_closed: "Fermé"
     yes: "oui"
     no: "non"
     sort: "Trier les tâches"

@@ -19,6 +19,7 @@ ru:
     due_date: "Окончание"
     description: "Описание"
     leaf_task: "Подзадача"
+    is_closed: "закрыто"
     yes: "да"
     no: "нет"
     sort: "Сортировать"

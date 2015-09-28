@@ -1,6 +1,7 @@
 ---
 pl:
   planning:
+    caption: "Plan"
     head_planning: "Planowanie"
     label_planning: "Planowanie projektu"
     center_on: "Wyśrodkuj na"
@@ -18,6 +19,7 @@ pl:
     due_date: "Data oddania"
     description: "Opis"
     leaf_task: "Zagadnienie poboczne"
+    is_closed: "Zamknięte"
     yes: "tak"
     no: "nie"
     sort: "Sortuj zagadnienia"

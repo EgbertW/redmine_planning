@@ -1,6 +1,7 @@
 ---
 tr:
   planning:
+    caption: "Plan"
     head_planning: "Planlama"
     label_planning: "Birimleri planla"
     center_on: "Merkezi şuraya koy"
@@ -18,6 +19,7 @@ tr:
     due_date: "Teslim Tarihi"
     description: "Açıklama"
     leaf_task: "Uç İş"
+    is_closed: "Kapalı"
     yes: "evet"
     no: "hayır"
     sort: "İşleri sırala"

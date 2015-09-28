@@ -1,6 +1,7 @@
 ---
 cs:
   planning:
+    caption: "Plan"
     head_planning: "Plánování"
     label_planning: "Plánování projektů"
     center_on: "Soustředit se na"
@@ -18,6 +19,7 @@ cs:
     due_date: "Uzavřít do"
     description: "Popis"
     leaf_task: "Potomek"
+    is_closed: "Zavřeno"
     yes: "ano"
     no: "ne"
     sort: "Seřadit úkoly"
