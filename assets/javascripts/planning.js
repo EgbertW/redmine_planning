@@ -242,7 +242,7 @@ PlanningIssue.prototype._showTooltip = function ()
     d.html(
         '<table cellpadding="2">' +
         '<tr><th colspan="2" style="text-align: left; padding-bottom: 5px;">' + this.tracker + ' <a href="' + url + '" target="_blank">#' + this.id + '</a>: ' + this.name + '</th></tr>' +
-        '<tr><th>' + this.t('project') + ': </th><td><a href="' + prj_url + '" target="_blank">' + this.project + '</a></td></tr>' + 
+        '<tr><th>' + this.t('project') + ': </th><td><a href="' + prj_url + '" target="_blank">' + this.project.name + '</a></td></tr>' + 
         '<tr><th>' + this.t('parent_task') + ': </th><td>' + parent_issue + '</td></tr>' +
         '<tr><th>' + this.t('start_date') + ': </th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
         '<tr><th>' + this.t('due_date') + ': </th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
