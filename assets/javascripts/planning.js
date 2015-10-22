@@ -250,6 +250,7 @@ PlanningIssue.prototype._showTooltip = function ()
         '<tr><th>' + this.t('parent_task') + ': </th><td>' + parent_issue + '</td></tr>' +
         '<tr><th>' + this.t('start_date') + ': </th><td>' + this.chart.formatDate(this.start_date) + '</td></tr>' + 
         '<tr><th>' + this.t('due_date') + ': </th><td>' + this.chart.formatDate(this.due_date) + '</td></tr>' + 
+	'<tr><th>' + this.t('est_time') + ': </th><td>' + this.estimated_time + '</th></tr>' +
         '<tr><th>' + this.t('leaf_task') + ': </th><td>' + (this.leaf ? this.t('yes') : this.t('no')) + '</td></tr>' +
         '<tr><th>' + this.t('is_closed') + ': </th><td>' + (this.closed ? this.t('yes') : this.t('no')) + '</td></tr>' +
         '<tr><th>' + this.t('field_done_ratio') + ': </th><td>' + (this.progress) + '%</td></tr>' +
@@ -421,6 +422,7 @@ function PlanningChart(options)
         parent_task: 'Parent task',
         start_date: 'Start date',
         due_date: 'Due date',
+        est_time: 'Estimated time',
         description: 'Description',
         leaf_task: 'Leaf task',
         milestone: 'Milestone',
@@ -1826,6 +1828,7 @@ function PlanningIssue(data)
         this.due_date = null;
 
     this.name = data.name;
+    this.estimated_time = data.estimated_time;
     this.description = data.description;
     this.project = data.project_name;
     this.project_identifier = data.project_identifier;
